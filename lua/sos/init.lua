@@ -110,6 +110,7 @@ local function start()
 
                 local found_cmd = false
 
+                -- TODO: parse cmdline instead of gmatch
                 for word in vim.fn.getcmdline():gmatch "%S+" do
                     if saveable_cmds[vim.fn.fullcommand(word)] then
                         found_cmd = true

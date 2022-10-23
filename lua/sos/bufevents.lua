@@ -71,12 +71,16 @@ function MultiBufObserver:new(cfg, timer)
     --- @param buf integer
     --- @return nil
     function instance:detach(buf)
-        self.pending_detach[buf] = true
+        if self.listeners[buf] then self.pending_detach[buf] = true end
     end
 
     --- @param buf integer
     --- @return nil
     function instance:process_buf(buf)
+        -- Unsure why, but sometimes autocmds will trigger during/near vim
+        -- exit, like "BufNew"
+        if vim.v.exiting ~= vim.NIL then return end
+        if buf == 0 then buf = api.nvim_get_current_buf() end
         if self.cfg.should_observe_buf(buf) then
             self:attach(buf)
         else
@@ -113,7 +117,9 @@ function MultiBufObserver:new(cfg, timer)
                 desc = "Handle buffer type and option changes",
                 callback = function(info)
                     assert(info.buf)
-                    self:process_buf(info.buf)
+                    vim.schedule(function()
+                        self:process_buf(info.buf)
+                    end)
                 end,
             }),
 
@@ -127,7 +133,9 @@ function MultiBufObserver:new(cfg, timer)
                 pattern = "*",
                 desc = "Attach buffer callbacks to listen for changes",
                 callback = function(info)
-                    self:process_buf(info.buf)
+                    vim.schedule(function()
+                        self:process_buf(info.buf)
+                    end)
                 end,
             }),
         })
