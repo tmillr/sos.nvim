@@ -9,18 +9,26 @@ local MultiBufObserver = {}
 function MultiBufObserver:new(cfg, timer)
     local did_start = false
     local did_destroy = false
-    local instance =
-        { autocmds = {}, listeners = {}, cfg = cfg, timer = timer }
+
+    local instance = {
+        autocmds = {},
+        listeners = {},
+        pending_detach = {},
+        cfg = cfg,
+        timer = timer,
+    }
 
     --- @return nil
-    function instance:on_timer() vim.schedule(self.cfg.on_timer) end
+    function instance:on_timer()
+        vim.schedule(self.cfg.on_timer)
+    end
 
     --- Called whenever a buffer incurs a saveable change (i.e.
     --- writing the buffer would change the file's contents on the filesystem).
     --- All this does is debounce the timer.
     --- NOTE: this triggers often, so it should return quickly!
     function instance:on_change(buf)
-        if self.listeners[buf] == nil then return true end -- detach
+        if self:should_detach(buf) then return true end -- detach
         local t = self.timer
         local result, err, _ = t:stop()
         assert(result == 0, err)
@@ -28,15 +36,24 @@ function MultiBufObserver:new(cfg, timer)
         assert(result == 0, err)
     end
 
+    --- @param buf integer
     --- @return nil
     function instance:attach(buf)
+        self.pending_detach[buf] = nil
+
         if self.listeners[buf] == nil then
             assert(
                 api.nvim_buf_attach(buf, false, {
                     -- NOTE: this fires on EVERY single change of the buf
                     -- text, even if the text is replaced with the same text.
                     -- Fires on every keystroke in insert mode.
-                    on_lines = function(_, bufnr) self:on_change(bufnr) end,
+                    on_lines = function(_, bufnr)
+                        return self:on_change(bufnr)
+                    end,
+                    on_detach = function(_, bufnr)
+                        self.listeners[bufnr] = nil
+                        self.pending_detach[bufnr] = nil
+                    end,
                 }),
                 "failed to attach to buffer " .. buf
             )
@@ -45,8 +62,17 @@ function MultiBufObserver:new(cfg, timer)
         end
     end
 
+    --- @param buf integer
+    --- @return boolean | nil
+    function instance:should_detach(buf)
+        return did_destroy or self.pending_detach[buf]
+    end
+
+    --- @param buf integer
     --- @return nil
-    function instance:detach(buf) self.listeners[buf] = nil end
+    function instance:detach(buf)
+        self.pending_detach[buf] = true
+    end
 
     --- @param buf integer
     --- @return nil
@@ -68,6 +94,7 @@ function MultiBufObserver:new(cfg, timer)
 
         self.autocmds = {}
         self.listeners = {}
+        self.pending_detach = {}
     end
 
     function instance:start()
@@ -99,7 +126,9 @@ function MultiBufObserver:new(cfg, timer)
             api.nvim_create_autocmd("BufNew", {
                 pattern = "*",
                 desc = "Attach buffer callbacks to listen for changes",
-                callback = function(info) self:process_buf(info.buf) end,
+                callback = function(info)
+                    self:process_buf(info.buf)
+                end,
             }),
         })
 
