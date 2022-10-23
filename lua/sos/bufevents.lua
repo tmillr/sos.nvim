@@ -103,7 +103,7 @@ function MultiBufObserver:new(cfg, timer)
             }),
         })
 
-        for _, bufnr in api.nvim_list_bufs() do
+        for _, bufnr in ipairs(api.nvim_list_bufs()) do
             self:process_buf(bufnr)
         end
     end
