@@ -77,12 +77,12 @@ local _saveable_cmds = {
 }
 
 local function start()
-    if vim.g.__sos_autosaver__.buf_observer ~= nil then return end
+    if __sos_autosaver__.buf_observer ~= nil then return end
 
-    vim.g.__sos_autosaver__.buf_observer =
-        MultiBufObserver:new(cfg, vim.g.__sos_autosaver__.timer)
+    __sos_autosaver__.buf_observer =
+        MultiBufObserver:new(cfg, __sos_autosaver__.timer)
 
-    vim.g.__sos_autosaver__.buf_observer:start()
+    __sos_autosaver__.buf_observer:start()
 
     -- NOTE: will not catch file reading/sourcing done in
     -- mappings/timers/autocmds/via functions/etc.
@@ -104,7 +104,7 @@ local function start()
             if cfg.save_on_cmd ~= "all" then
                 local saveable_cmds = _saveable_cmds
 
-                if cfg.save_on_cmd == "table" then
+                if type(cfg.save_on_cmd) == "table" then
                     saveable_cmds = cfg.save_on_cmd
                 end
 
@@ -120,7 +120,7 @@ local function start()
                 if not found_cmd then return end
             end
 
-            vim.g.__sos_autosaver__.buf_observer.cfg.on_timer()
+            __sos_autosaver__.buf_observer.cfg.on_timer()
         end,
     })
 
@@ -128,10 +128,10 @@ local function start()
 end
 
 local function stop()
-    if vim.g.__sos_autosaver__.buf_observer == nil then return end
+    if __sos_autosaver__.buf_observer == nil then return end
     api.nvim_clear_autocmds { group = augroup }
-    vim.g.__sos_autosaver__.buf_observer:destroy()
-    vim.g.__sos_autosaver__.buf_observer = nil
+    __sos_autosaver__.buf_observer:destroy()
+    __sos_autosaver__.buf_observer = nil
     vim.notify("[sos.nvim]: disabled", vim.log.levels.INFO)
 end
 
@@ -149,10 +149,10 @@ end
 --    after reloading the plugin, and we don't want different callbacks
 --    with (potentially) different behavior attached to different buffers
 --    (e.g. the plugin is reloaded/re-sourced during development).
-if vim.g.__sos_autosaver__ == nil then
+if __sos_autosaver__ == nil then
     local t = loop.new_timer()
     loop.unref(t)
-    vim.g.__sos_autosaver__ = {
+    __sos_autosaver__ = {
         timer = t,
         buf_observer = nil,
     }
