@@ -61,22 +61,12 @@ TODO: Command/Fn/Opt to enable/disable locally (per buf)
 local M = {}
 local cfg = require "sos.config"
 local MultiBufObserver = require "sos.bufevents"
+local autocmds = require "sos.autocmds"
 local api = vim.api
 local loop = vim.loop
-local augroup = vim.api.nvim_create_augroup("sos-autosaver", { clear = true })
-
--- NOTE: `:make` is covered by `'autowrite'`
-local _saveable_cmds = {
-    ["!"] = true,
-    lua = true,
-    luafile = true,
-    runtime = true,
-    source = true,
-    system = true,
-    systemlist = true,
-}
 
 local function start()
+    autocmds.refresh(cfg)
     if __sos_autosaver__.buf_observer ~= nil then return end
 
     __sos_autosaver__.buf_observer =
@@ -84,53 +74,12 @@ local function start()
 
     __sos_autosaver__.buf_observer:start()
 
-    -- NOTE: will not catch file reading/sourcing done in
-    -- mappings/timers/autocmds/via functions/etc.
-    api.nvim_create_autocmd("CmdlineLeave", {
-        group = augroup,
-        pattern = ":",
-        nested = true,
-        desc = "Save all buffers before running a command",
-        callback = function(_info)
-            if
-                cfg.enabled == false
-                or cfg.save_on_cmd == false
-                or vim.v.event.abort == 1
-                or vim.v.event.abort == true
-            then
-                return
-            end
-
-            if cfg.save_on_cmd ~= "all" then
-                local saveable_cmds = _saveable_cmds
-
-                if type(cfg.save_on_cmd) == "table" then
-                    saveable_cmds = cfg.save_on_cmd
-                end
-
-                local found_cmd = false
-
-                -- TODO: parse cmdline instead of gmatch
-                for word in vim.fn.getcmdline():gmatch "%S+" do
-                    if saveable_cmds[vim.fn.fullcommand(word)] then
-                        found_cmd = true
-                        break
-                    end
-                end
-
-                if not found_cmd then return end
-            end
-
-            __sos_autosaver__.buf_observer.cfg.on_timer()
-        end,
-    })
-
     vim.notify("[sos.nvim]: enabled", vim.log.levels.INFO)
 end
 
 local function stop()
+    autocmds.clear()
     if __sos_autosaver__.buf_observer == nil then return end
-    api.nvim_clear_autocmds { group = augroup }
     __sos_autosaver__.buf_observer:destroy()
     __sos_autosaver__.buf_observer = nil
     vim.notify("[sos.nvim]: disabled", vim.log.levels.INFO)
@@ -158,7 +107,7 @@ if __sos_autosaver__ == nil then
         buf_observer = nil,
     }
 else
-    -- Plugin was reloaded somehow, destroy old observer
+    -- Plugin was reloaded somehow, destroy the old observer
     stop()
 end
 
@@ -181,36 +130,38 @@ local function main()
         return
     end
 
-    if cfg.enabled == true then
+    if cfg.enabled then
         start()
-    elseif cfg.enabled == false then
+    else
         stop()
     end
 end
 
+--- Missing keys in `opts` are left untouched and will continue to use their
+--- current value, or will fallback to their default value if never previously
+--- set.
 --- @param opts sos.Config | nil
 --- @return nil
 function M.setup(opts)
     vim.validate { opts = { opts, "table", true } }
-    if not opts then return end
 
-    for k, v in pairs(opts) do
-        if cfg[k] == nil then
-            vim.notify(
-                string.format(
-                    "[sos.nvim]: unrecognized key in options: %s",
-                    k
-                ),
-                vim.log.levels.WARN
-            )
-        else
-            cfg[k] = vim.deepcopy(v)
+    if opts then
+        for k, v in pairs(opts) do
+            if cfg[k] == nil then
+                vim.notify(
+                    string.format(
+                        "[sos.nvim]: unrecognized key in options: %s",
+                        k
+                    ),
+                    vim.log.levels.WARN
+                )
+            else
+                cfg[k] = vim.deepcopy(v)
+            end
         end
     end
 
     main()
 end
-
-main()
 
 return M

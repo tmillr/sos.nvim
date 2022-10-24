@@ -1,6 +1,17 @@
 local M = {}
 local api = vim.api
 
+--- NOTE: `:make` is covered by `'autowrite'`
+M.saveable_cmds = {
+    ["!"] = true,
+    lua = true,
+    luafile = true,
+    runtime = true,
+    source = true,
+    system = true,
+    systemlist = true,
+}
+
 local recognized_buftypes =
     vim.regex [[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]]
 
@@ -22,13 +33,17 @@ local function wanted_buftype(buf)
 end
 
 local write_current_buf_arg1 = { cmd = "write" }
-local function write_current_buf() api.nvim_cmd(write_current_buf_arg1) end
+local function write_current_buf()
+    api.nvim_cmd(write_current_buf_arg1)
+end
 
 --- @param buf integer
-local function write_buf(buf) api.nvim_buf_call(buf, write_current_buf) end
+local function write_buf(buf)
+    api.nvim_buf_call(buf, write_current_buf)
+end
 
 --- @param buf integer
-local function write_buf_if_needed(buf)
+function M.write_buf_if_needed(buf)
     if
         vim.bo[buf].mod
         and not vim.bo[buf].ro
@@ -82,7 +97,7 @@ end
 --- @return nil
 function M.on_timer()
     for _, buf in ipairs(api.nvim_list_bufs()) do
-        write_buf_if_needed(buf)
+        M.write_buf_if_needed(buf)
     end
 end
 
