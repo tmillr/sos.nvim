@@ -19,10 +19,7 @@ function MultiBufObserver:new(cfg, timer)
         timer = timer,
     }
 
-    --- @return nil
-    function instance:on_timer()
-        vim.schedule(self.cfg.on_timer)
-    end
+    instance.on_timer = vim.schedule_wrap(self.cfg.on_timer)
 
     --- Called whenever a buffer incurs a saveable change (i.e.
     --- writing the buffer would change the file's contents on the filesystem).
