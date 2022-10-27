@@ -8,6 +8,7 @@ function M.clear()
     api.nvim_create_augroup(augroup, { clear = true })
 end
 
+--- Update defined autocmds according to `cfg`
 --- @param cfg sos.Config
 --- @return nil
 function M.refresh(cfg)
