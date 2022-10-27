@@ -46,11 +46,6 @@ Cons
   they automatically integrate with autocmds, buf options, `:checktime`, and
   any other things that I might be forgetting.
 
-TODO: Handle ModifiedSet event or something similar to handle the case where
-buffer is considered modified and/or needs to be written even though the
-buffer text didn't change (e.g. 'eol' or 'fileformat' changed etc, see `:h
-'mod'`)
-
 TODO: Command/Fn/Opt to enable/disable locally (per buf)
 --]]
 
@@ -65,7 +60,7 @@ local autocmds = require "sos.autocmds"
 local api = vim.api
 local loop = vim.loop
 
-local function start()
+function M.start(verbose)
     autocmds.refresh(cfg)
     if __sos_autosaver__.buf_observer ~= nil then return end
 
@@ -73,16 +68,17 @@ local function start()
         MultiBufObserver:new(cfg, __sos_autosaver__.timer)
 
     __sos_autosaver__.buf_observer:start()
-
-    vim.notify("[sos.nvim]: enabled", vim.log.levels.INFO)
+    if verbose then vim.notify("[sos.nvim]: enabled", vim.log.levels.INFO) end
 end
 
-local function stop()
+function M.stop(verbose)
     autocmds.clear()
     if __sos_autosaver__.buf_observer == nil then return end
     __sos_autosaver__.buf_observer:destroy()
     __sos_autosaver__.buf_observer = nil
-    vim.notify("[sos.nvim]: disabled", vim.log.levels.INFO)
+    if verbose then
+        vim.notify("[sos.nvim]: disabled", vim.log.levels.INFO)
+    end
 end
 
 -- Init the global obj
@@ -108,11 +104,11 @@ if __sos_autosaver__ == nil then
     }
 else
     -- Plugin was reloaded somehow, destroy the old observer
-    stop()
+    M.stop()
 end
 
 --- @return nil
-local function main()
+local function main(verbose)
     if vim.v.vim_did_enter == 0 or vim.v.vim_did_enter == false then
         local augroup_init = vim.api.nvim_create_augroup(
             "sos-autosaver/init",
@@ -131,19 +127,26 @@ local function main()
     end
 
     if cfg.enabled then
-        start()
+        M.start(verbose)
     else
-        stop()
+        M.stop(verbose)
     end
 end
 
 --- Missing keys in `opts` are left untouched and will continue to use their
 --- current value, or will fallback to their default value if never previously
 --- set.
---- @param opts sos.Config | nil
+--- @param opts? sos.Config
+--- @param reset? boolean Reset all options to their defaults before applying `opts`
 --- @return nil
-function M.setup(opts)
+function M.setup(opts, reset)
     vim.validate { opts = { opts, "table", true } }
+
+    if reset then
+        for _, k in ipairs(vim.tbl_keys(cfg)) do
+            if rawget(cfg, k) ~= nil then rawset(cfg, k, nil) end
+        end
+    end
 
     if opts then
         for k, v in pairs(opts) do
@@ -161,7 +164,7 @@ function M.setup(opts)
         end
     end
 
-    main()
+    main(true)
 end
 
 return M

@@ -30,7 +30,7 @@ After doing this, you will need to then either restart Neovim or execute `:Plug 
 
 ## Setup/Options
 
-Listed below are all of the possible options that can be configured, along with their default values. Missing options will retain their current value (which will be their default value if never previously set, or if this is the first time calling `setup()` in this Neovim session). This means that `setup()` can be used later on to change just a single option, while not touching/changing/resetting to default any of the other options. If the plugin is started during Neovim's startup/init phase, the plugin will wait until Neovim has finished initializing before setting up its buffer and option observers (autocmds, buffer callbacks, etc.).
+Listed below are all of the possible options that can be configured, along with their default values. Missing options will retain their current value (which will be their default value if never previously set, or if this is the first time calling `setup()` in this Neovim session). This means that `setup()` can be used later on to change just a single option while not touching/changing/resetting to default any of the other options. You can also pass `true` as a 2nd argument to `setup()` (i.e. `setup(opts, true)`) to reset all options to their default values before applying `opts`. If the plugin is started during Neovim's startup/init phase, the plugin will wait until Neovim has finished initializing before setting up its buffer and option observers (autocmds, buffer callbacks, etc.).
 
 ```lua
 require("sos").setup {
@@ -96,6 +96,10 @@ require("sos").setup {
     -- on_timer = require("sos.impl").on_timer,
 }
 ```
+
+## Commands
+
+All of the available commands are defined [here](/plugin/sos.lua).
 
 ## Tips
 
