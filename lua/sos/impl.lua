@@ -2,15 +2,17 @@ local M = {}
 local api = vim.api
 
 --- NOTE: `:make` is covered by `'autowrite'`
+--- @type table<string, true>
 M.saveable_cmds = {
     ["!"] = true,
-    lua = true,
+    lua = true, -- because lua often reads files via require() and various other fn's
     luafile = true,
     runtime = true,
     source = true,
-    system = true,
-    systemlist = true,
 }
+
+-- TODO: Allow user to provide custom vim regex via opts/cfg
+M.saveable_cmdline = vim.regex [=[system\|systemlist\|:lua\|[Jj][Oo][Bb]]=]
 
 local recognized_buftypes =
     vim.regex [[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]]

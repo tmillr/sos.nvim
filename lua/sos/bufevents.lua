@@ -97,9 +97,6 @@ function MultiBufObserver:new(cfg, timer)
     --- @param buf integer
     --- @return nil
     function instance:process_buf(buf)
-        -- Unsure why, but sometimes autocmds will trigger during/near vim
-        -- exit, like "BufNew".
-        if vim.v.exiting ~= vim.NIL then return end
         if buf == 0 then buf = api.nvim_get_current_buf() end
 
         if self.cfg.should_observe_buf(buf) then

@@ -15,6 +15,15 @@ function M.refresh(cfg)
     api.nvim_create_augroup(augroup, { clear = true })
     if not cfg.enabled then return end
 
+    api.nvim_create_autocmd("VimLeavePre", {
+        group = augroup,
+        pattern = "*",
+        desc = "Cleanup",
+        callback = function()
+            require("sos").stop()
+        end,
+    })
+
     if cfg.save_on_bufleave then
         api.nvim_create_autocmd("BufLeave", {
             group = augroup,
@@ -46,26 +55,34 @@ function M.refresh(cfg)
                 end
 
                 if cfg.save_on_cmd ~= "all" then
+                    local cmdline = vim.fn.getcmdline()
+
+                    if
+                        cfg.save_on_cmd == "some"
+                        and impl.saveable_cmdline:match_str(cmdline)
+                    then
+                        cfg.on_timer()
+                        return
+                    end
+
                     local saveable_cmds = impl.saveable_cmds
 
                     if type(cfg.save_on_cmd) == "table" then
-                        saveable_cmds = cfg.save_on_cmd
+                        saveable_cmds = cfg.save_on_cmd --[[@as table<string, true>]]
                     end
 
-                    local found_cmd = false
+                    local ok, parsed = pcall(api.nvim_parse_cmd, cmdline)
+                    if not ok then return end
 
-                    -- TODO: parse cmdline instead of gmatch
-                    for word in vim.fn.getcmdline():gmatch "%S+" do
-                        if saveable_cmds[vim.fn.fullcommand(word)] then
-                            found_cmd = true
-                            break
-                        end
+                    while true do
+                        if saveable_cmds[parsed.cmd] then break end
+                        if (parsed.nextcmd or "") == "" then return end
+                        ok, parsed = api.nvim_parse_cmd(parsed.nextcmd, {})
+                        if not ok then return end
                     end
-
-                    if not found_cmd then return end
                 end
 
-                __sos_autosaver__.buf_observer.cfg.on_timer()
+                cfg.on_timer()
             end,
         })
     end
