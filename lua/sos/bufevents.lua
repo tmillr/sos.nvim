@@ -1,3 +1,4 @@
+local errmsg = require("sos.util").errmsg
 local api = vim.api
 
 --- An object which observes multiple buffers for changes at once.
@@ -38,8 +39,8 @@ function MultiBufObserver:new(cfg, timer)
     end
 
     --- NOTE: this fires on EVERY single change of the buf
-    --- text, even if the text is replaced with the same text.
-    --- Fires on every keystroke in insert mode.
+    --- text, even if the text is replaced with the same text,
+    --- and fires on every keystroke in insert mode.
     instance.buf_callback.on_lines = function(_, buf)
         return instance:on_change(buf)
     end
@@ -49,6 +50,7 @@ function MultiBufObserver:new(cfg, timer)
         instance.pending_detach[buf] = nil
     end
 
+    --- Attach buffer callbacks if not already attached
     --- @param buf integer
     --- @return nil
     function instance:attach(buf)
@@ -84,12 +86,14 @@ function MultiBufObserver:new(cfg, timer)
         return did_destroy or self.pending_detach[buf]
     end
 
+    --- Detach buffer callbacks if not already detached
     --- @param buf integer
     --- @return nil
     function instance:detach(buf)
         if self.listeners[buf] then self.pending_detach[buf] = true end
     end
 
+    --- Attach or detach buffer callbacks if needed
     --- @param buf integer
     --- @return nil
     function instance:process_buf(buf)
@@ -99,12 +103,13 @@ function MultiBufObserver:new(cfg, timer)
         if buf == 0 then buf = api.nvim_get_current_buf() end
 
         if self.cfg.should_observe_buf(buf) then
-            self:attach(buf)
+            if api.nvim_buf_is_loaded(buf) then self:attach(buf) end
         else
             self:detach(buf)
         end
     end
 
+    --- Destroy this observer
     --- @return nil
     function instance:destroy()
         did_destroy = true
@@ -118,8 +123,12 @@ function MultiBufObserver:new(cfg, timer)
         self.pending_detach = {}
     end
 
+    --- Begin observing buffers with this observer.
     function instance:start()
-        assert(not did_start, "unable to start a running MultiBufObserver")
+        assert(
+            not did_start,
+            "unable to start an already running MultiBufObserver"
+        )
 
         assert(
             not did_destroy,
@@ -133,26 +142,65 @@ function MultiBufObserver:new(cfg, timer)
                 pattern = { "buftype", "readonly", "modifiable" },
                 desc = "Handle buffer type and option changes",
                 callback = function(info)
-                    assert(info.buf)
-                    vim.schedule(function()
-                        self:process_buf(info.buf)
-                    end)
+                    if not info.buf then
+                        errmsg "OptionSet callback: autocmd event info missing `buf` (<abuf>)"
+                        return
+                    end
+
+                    self:process_buf(info.buf)
                 end,
             }),
 
+            -- `BufNew` event
             -- does the buffer always not have a name? i.e. is the name applied later?
             -- has the file been read yet?
             -- assert that this triggers when a new buffer w/o name gets name via :write
             -- assert that this works for every new buffer incl those with files, and
             -- without
             -- assert that this fires when a buf loses it's filename (renamed to "")
-            api.nvim_create_autocmd("BufNew", {
+            --
+            -- After a loaded buf is changed ('mod' is changed), but not for
+            -- scratch buffers. No longer using `BufNew` because:
+            --     * it fires before buf is loaded sometimes
+            --     * sometimes a buf is created but not loaded (e.g. `:badd`)
+            api.nvim_create_autocmd("BufModifiedSet", {
                 pattern = "*",
                 desc = "Attach buffer callbacks to listen for changes",
                 callback = function(info)
-                    vim.schedule(function()
-                        self:process_buf(info.buf)
-                    end)
+                    local buf = info.buf
+                    local modified = vim.bo[buf].mod
+
+                    if not buf then
+                        errmsg "BufModifiedSet callback: autocmd event info missing `buf` (<abuf>)"
+                        return
+                    end
+
+                    -- Can only attach if loaded. Also, an unloaded buf should
+                    -- not be able to become modified, so this event should
+                    -- never fire for unloaded bufs.
+                    if not api.nvim_buf_is_loaded(buf) then
+                        errmsg "unexpected BufModifiedSet event on unloaded buffer"
+                        return
+                    end
+
+                    -- Ignore if buf was set to `nomod`, as is the case when
+                    -- buf is written
+                    if modified then
+                        self:process_buf(buf)
+                        -- Manually signal saveable change because:
+                        --     1. Callbacks/listeners may not have been
+                        --        attached when BufModifiedSet fired, in which
+                        --        case they will have missed this change.
+                        --
+                        --     2. `buf` may have incurred a saveable change
+                        --        even though no text changed (see `:h
+                        --        'mod'`), and that is what made
+                        --        BufModifiedSet fire. Since we're not using
+                        --        the `on_changedtick` buf listener/callback,
+                        --        BufModifiedSet is our only way to detect
+                        --        this type of change.
+                        self:on_change(buf)
+                    end
                 end,
             }),
         })
