@@ -10,7 +10,7 @@ do
     ---@param how? "n" | "no"
     ---@return nil
     function M.errmsg(msg, how)
-        return (msg_type[how] or api.nvim_err_writeln)(msg)
+        return (msg_type[how] or api.nvim_err_writeln)("[sos.nvim]: " .. msg)
     end
 end
 
