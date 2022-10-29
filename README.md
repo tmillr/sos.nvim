@@ -44,6 +44,20 @@ require("sos").setup {
     -- changes will then debounce the timer. After firing, the timer is not
     -- started again until the next buffer change.
     timeout = 20000,
+    
+    -- Set, and manage, Vim's 'autowrite' option (see :h 'autowrite'). Allowing
+    -- sos to "manage" the option makes it so that all autosaving functionality
+    -- can be enabled or disabled altogether in a synchronized fashion as
+    -- otherwise it is possible for autosaving to still occur even after sos has
+    -- been explicitly disabled (via :SosDisable for example). There are 3
+    -- possible values:
+    --
+    --     "all": set and manage 'autowriteall'
+    --
+    --     true: set and manage 'autowrite'
+    --
+    --     false: don't set, touch, or manage any of Vim's 'autowwrite' options
+    autowrite = true,
 
     -- Automatically write all modified buffers before executing a command on
     -- the cmdline. Aborting the cmdline (e.g. via `<Esc>`) also aborts the

@@ -57,10 +57,34 @@ local M = {}
 local cfg = require "sos.config"
 local MultiBufObserver = require "sos.bufevents"
 local autocmds = require "sos.autocmds"
+local errmsg = require("sos.util").errmsg
 local api = vim.api
 local loop = vim.loop
 
+local function manage_vim_opts(config, plug_enabled)
+    local aw = config.autowrite
+
+    if aw == "all" then
+        vim.o.autowrite = false
+        vim.o.autowriteall = plug_enabled
+    elseif aw == true then
+        vim.o.autowriteall = false
+        vim.o.autowrite = plug_enabled
+    elseif aw ~= false then
+        errmsg(
+            "invalid value `"
+                .. vim.inspect(aw)
+                .. '` for option `autowrite`: expected "all" | true | false'
+        )
+        return
+    end
+
+    -- If we reached here then cfg.autowrite was set to false, so don't touch
+    -- it then.
+end
+
 function M.start(verbose)
+    manage_vim_opts(cfg, true)
     autocmds.refresh(cfg)
     if __sos_autosaver__.buf_observer ~= nil then return end
 
@@ -72,6 +96,7 @@ function M.start(verbose)
 end
 
 function M.stop(verbose)
+    manage_vim_opts(cfg, false)
     autocmds.clear()
     if __sos_autosaver__.buf_observer == nil then return end
     __sos_autosaver__.buf_observer:destroy()
