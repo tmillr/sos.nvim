@@ -46,6 +46,8 @@
       used alongside sos, because the autowrite vim options will create new
       files). DONE: sos will now create new files
 - [ ] Issue msg on new file (if not done already)
-- [ ] `SosStatus` command
+- [ ] `:SosStatus` command
+- [ ] Opt to disable the buf observer (and basically only use the autocmds and/or Vim opts)
+- [ ] Opt to set and manage `'autoread'`
 - [ ] Add tests/CI, linter checks (e.g. luacheck)
 - [ ] TEST: `nvim_buf_call()` should propagate errors/not be silent

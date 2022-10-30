@@ -36,6 +36,17 @@ function M.refresh(cfg)
         })
     end
 
+    if cfg.save_on_focuslost then
+        api.nvim_create_autocmd("FocusLost", {
+            group = augroup,
+            pattern = "*",
+            desc = "Save all buffers when Neovim loses focus",
+            callback = function(_info)
+                cfg.on_timer()
+            end,
+        })
+    end
+
     if cfg.save_on_cmd then
         -- NOTE: will not catch file reading/sourcing done in
         -- mappings/timers/autocmds/via functions/etc.

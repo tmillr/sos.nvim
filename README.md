@@ -86,6 +86,20 @@ require("sos").setup {
     -- the fact that neither `'autowrite'` nor `'autowriteall'` cover this case,
     -- so it combines well with those options too.
     save_on_bufleave = true,
+    
+    -- Save all buffers when Neovim loses focus. This is provided because
+    -- 'autowriteall' does not cover this case. It is particularly useful when
+    -- swapfiles have been disabled and you (knowingly or unknowingly) start
+    -- editing the same file in another Neovim instance while having unsaved
+    -- changes. It helps keep the file/version on the filesystem synchronized
+    -- with your latest changes when switching applications so that another
+    -- application won't accidentally open old versions of files that you are
+    -- still currently editing. Con: it could be that you actually intended to
+    -- open an older version of a file in another application/Neovim instance,
+    -- although in that case you're probably better off disabling autosaving
+    -- altogether (or keep it enabled but utilize a VCS to get the version you
+    -- need - that is, if you commit frequently enough).
+    save_on_focuslost = true,
 
     -- Predicate fn which receives a buf number and should return true if it
     -- should be observed for changes (i.e. whether the buffer should debounce
