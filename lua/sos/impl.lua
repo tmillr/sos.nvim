@@ -56,32 +56,26 @@ function M.write_buf_if_needed(buf)
             "expected normal buftype of modified buffer " .. buf
         )
 
-        -- NOTE: bufname should point to a valid file that is a file and not
-        -- dir
-        -- NOTE: filename may appear to not exist if it's remote (buftype =
-        -- "acwrite")
         local name = api.nvim_buf_get_name(buf)
+        -- Cannot write to an empty filename
         if name == "" then return end
-        local ok, res = pcall(vim.fn.resolve, name)
-
-        if ok then
-            name = res
-        else
-            vim.notify_once("[sos.nvim]: " .. res, vim.log.levels.ERROR)
-        end
-
-        -- async alternative: loop.fs_access(path, mode)
-        -- 0: doesn't exist, or not writeable
-        -- 1: exists, is file, and is writeable
-        -- 2: Same as 1, but is a dir
-        if vim.fn.filewriteable(name) == 1 then
-            write_buf(buf)
-            return
-        end
+        local buftype = vim.bo[buf].bt
 
         -- If we reached here then file either doesn't exist, doesn't have
         -- write perms/isn't writeable, or is dir
-        if vim.bo[buf].bt == "acwrite" then write_buf(buf) end
+        if buftype == "acwrite" then
+            write_buf(buf)
+        elseif buftype == "" then
+            -- TODO: Make async
+            local stat, _errmsg, _errname = vim.loop.fs_stat(name)
+
+            if stat then
+                if stat.type == "file" then write_buf(buf) end
+            else
+                -- TODO: Try stat again on error (or certain errors)?
+                write_buf(buf)
+            end
+        end
     end
 end
 

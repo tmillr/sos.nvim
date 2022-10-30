@@ -2,15 +2,12 @@
 
 Never manually save/write a buffer again!
 
-This plugin is an autosaver for Neovim that automatically saves all of your changed buffers according to a predefined timeout value. The goals are:
+This plugin is an autosaver for Neovim that automatically saves all of your changed buffers according to a predefined timeout value. The main goals are:
 
+- to handle conditions/situations that `'autowriteall'` does not
 - to offer a complete, set-and-forget autosave/autowrite solution that saves your buffers for you when you want/need them saved
 - to offer at least some customization via options, as well as the ability to easily enable/disable
 - to be better or more correct than `CursorHold` autosavers and not depend on `CursorHold` if feasible
-
-**NOTE:** This plugin is still young and has not been extensively used or tested at this point in time.
-
-**NOTE:** Except for `acwrite` type buffers, this plugin does not save buffers that don't already exist on the filesystem (this includes files which merely appear to not exist due to inadequate permissions). The point of this is to err on the conservative side and to try to avoid creating new files unexpectedly (although creating a new file is probably what you want 95% of the time), such as the plugin creating a file after you've deleted the file on purpose but not its corresponding buffer yet. This is the current, default behavior that may change or be improved upon (e.g. warn the user with messages/notifications that the buffer was not autosaved, or simply just handle this case more intelligently) in the future. <ins>**This means that the first write/save after creating a new buffer for a nonexistent file has to be done manually, as that will create the file!**</ins>
 
 For any questions, help with setup, or general help, you can try [discussions][q&a]. For issues, bugs, apparent bugs, or feature requests, feel free to [open an issue][issues] or [create a pull request][prs].
 
@@ -30,7 +27,7 @@ After doing this, you will need to then either restart Neovim or execute `:Plug 
 
 ## Setup/Options
 
-Listed below are all of the possible options that can be configured, along with their default values. Missing options will retain their current value (which will be their default value if never previously set, or if this is the first time calling `setup()` in this Neovim session). This means that `setup()` can be used later on to change just a single option while not touching/changing/resetting to default any of the other options. You can also pass `true` as a 2nd argument to `setup()` (i.e. `setup(opts, true)`) to reset all options to their default values before applying `opts`. If the plugin is started during Neovim's startup/init phase, the plugin will wait until Neovim has finished initializing before setting up its buffer and option observers (autocmds, buffer callbacks, etc.).
+Listed below are all of the possible options that can be configured along with their default values. Missing options will retain their current value (which will be their default value if never previously set, or if this is the first time calling `setup()` in this Neovim session). This means that `setup()` can be used later on to change just a single option while not touching/changing/resetting to default any of the other options. You can also pass `true` as a 2nd argument to `setup()` (i.e. `setup(opts, true)`) to reset all options to their default values before applying `opts`. If the plugin is started during Neovim's startup/init phase, the plugin will wait until Neovim has finished initializing before setting up its buffer and option observers (autocmds, buffer callbacks, etc.).
 
 ```lua
 require("sos").setup {
@@ -44,7 +41,7 @@ require("sos").setup {
     -- changes will then debounce the timer. After firing, the timer is not
     -- started again until the next buffer change.
     timeout = 20000,
-    
+
     -- Set, and manage, Vim's 'autowrite' option (see :h 'autowrite'). Allowing
     -- sos to "manage" the option makes it so that all autosaving functionality
     -- can be enabled or disabled altogether in a synchronized fashion as
@@ -116,8 +113,6 @@ require("sos").setup {
 All of the available commands are defined [here](/plugin/sos.lua).
 
 ## Tips
-
-- If you've decided to use this plugin and want a more complete autosave experience, then you'll probably want to set the `'autowrite'` or `'autowriteall'` Neovim options as well. I'm using `'autowrite'` myself at the moment.
 
 - Decrease the `timeout` value if you'd like more frequent/responsive autosaving behavior (e.g. `10000` for 10 seconds, or `5000` for 5 seconds). It's probably best not to go below 5 seconds however.
 

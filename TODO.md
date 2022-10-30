@@ -39,10 +39,13 @@
       by the plugin (provide opt to opt-out) meaning that when the plugin is
       disabled with `:SosDisable` so to is `autowrite` and `autowriteall`
       (that way all autosaving is disabled, for consistency).
-- [ ] Either implement a custom `'autowrite'` mock (and make sure the real
+- [x] Either implement a custom `'autowrite'` mock (and make sure the real
       `'autowrite'` vim options are always disabled) or disable the feature of
       sos that makes it so new files are never created automatically (in order
       to be more consistent with autosaving behavior when `'autowrite'` is
       used alongside sos, because the autowrite vim options will create new
-      files).
+      files). DONE: sos will now create new files
+- [ ] Issue msg on new file (if not done already)
+- [ ] `SosStatus` command
 - [ ] Add tests/CI, linter checks (e.g. luacheck)
+- [ ] TEST: `nvim_buf_call()` should propagate errors/not be silent
