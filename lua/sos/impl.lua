@@ -36,7 +36,7 @@ end
 
 local write_current_buf_arg1 = { cmd = "write" }
 local function write_current_buf()
-    api.nvim_cmd(write_current_buf_arg1)
+    api.nvim_cmd(write_current_buf_arg1, { output = false })
 end
 
 --- @param buf integer
