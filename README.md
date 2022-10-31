@@ -86,7 +86,7 @@ require("sos").setup {
     -- the fact that neither `'autowrite'` nor `'autowriteall'` cover this case,
     -- so it combines well with those options too.
     save_on_bufleave = true,
-    
+
     -- Save all buffers when Neovim loses focus. This is provided because
     -- 'autowriteall' does not cover this case. It is particularly useful when
     -- swapfiles have been disabled and you (knowingly or unknowingly) start

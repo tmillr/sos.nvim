@@ -12,6 +12,7 @@ M.saveable_cmds = {
 }
 
 -- TODO: Allow user to provide custom vim regex via opts/cfg
+-- TODO: Add Plenary
 M.saveable_cmdline = vim.regex [=[system\|systemlist\|:lua\|[Jj][Oo][Bb]]=]
 
 local recognized_buftypes =
@@ -50,13 +51,10 @@ function M.write_buf_if_needed(buf)
         vim.bo[buf].mod
         and not vim.bo[buf].ro
         and api.nvim_buf_is_loaded(buf)
+        and wanted_buftype(buf)
     then
-        assert(
-            wanted_buftype(buf),
-            "expected normal buftype of modified buffer " .. buf
-        )
-
         local name = api.nvim_buf_get_name(buf)
+
         -- Cannot write to an empty filename
         if name == "" then return end
         local buftype = vim.bo[buf].bt
