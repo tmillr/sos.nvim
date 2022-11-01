@@ -73,3 +73,5 @@
 - [ ] Add tests/CI, linter checks (e.g. luacheck)
 
 - [ ] TEST: `nvim_buf_call()` should propagate errors/not be silent
+
+- [ ] IDEA: option to save on new, named buf (when file doesnt exist)
