@@ -1,18 +1,21 @@
 local M = {}
 local api = vim.api
 
---- NOTE: `:make` is covered by `'autowrite'`
---- @type table<string, true>
-M.saveable_cmds = {
+--- @type table<string, boolean>
+M.saveable_cmds = setmetatable({
     ["!"] = true,
     lua = true, -- because lua often reads files via require() and various other fn's
     luafile = true,
+    make = true,
     runtime = true,
-    source = true,
-}
+    source = true, -- TODO: Use autocmd instead?
+}, {
+    __index = function(_tbl, key)
+        return vim.startswith(key, "Plenary")
+    end,
+})
 
--- TODO: Allow user to provide custom vim regex via opts/cfg
--- TODO: Add Plenary
+-- TODO: Allow user to provide custom vim regex via opts/cfg?
 M.saveable_cmdline = vim.regex [=[system\|systemlist\|:lua\|[Jj][Oo][Bb]]=]
 
 local recognized_buftypes =
