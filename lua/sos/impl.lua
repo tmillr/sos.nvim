@@ -38,7 +38,7 @@ local function wanted_buftype(buf)
     return buftype == "" or buftype == "acwrite"
 end
 
-local write_current_buf_arg1 = { cmd = "write" }
+local write_current_buf_arg1 = { cmd = "write", mods = { silent = true } }
 local function write_current_buf()
     api.nvim_cmd(write_current_buf_arg1, { output = false })
 end
