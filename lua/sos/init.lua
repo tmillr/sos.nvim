@@ -60,6 +60,7 @@ local autocmds = require "sos.autocmds"
 local errmsg = require("sos.util").errmsg
 local api = vim.api
 local loop = vim.loop
+local augroup_init = "sos-autosaver/init"
 
 local function manage_vim_opts(config, plug_enabled)
     local aw = config.autowrite
@@ -128,17 +129,19 @@ if __sos_autosaver__ == nil then
         buf_observer = nil,
     }
 else
-    -- Plugin was reloaded somehow, destroy the old observer
+    -- Plugin was reloaded somehow
+    rawset(cfg, "enabled", nil)
+    -- Destroy the old observer
     M.stop()
+    -- Cancel potential pending call (if vim hasn't entered yet)
+    api.nvim_create_augroup(augroup_init, { clear = true })
 end
 
+--- @param verbose? boolean
 --- @return nil
 local function main(verbose)
     if vim.v.vim_did_enter == 0 or vim.v.vim_did_enter == false then
-        local augroup_init = vim.api.nvim_create_augroup(
-            "sos-autosaver/init",
-            { clear = true }
-        )
+        api.nvim_create_augroup(augroup_init, { clear = true })
 
         api.nvim_create_autocmd("VimEnter", {
             group = augroup_init,
