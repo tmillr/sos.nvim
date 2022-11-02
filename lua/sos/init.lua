@@ -145,7 +145,9 @@ local function main(verbose)
             pattern = "*",
             desc = "Initialize sos.nvim",
             once = true,
-            callback = main,
+            callback = function()
+                main(false)
+            end,
         })
 
         return
