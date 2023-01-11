@@ -2,7 +2,7 @@
 
 Never manually save/write a buffer again!
 
-This plugin is an autosaver for Neovim that automatically saves all of your changed buffers according to a predefined timeout value. The main goals are:
+This plugin is an autosaver for Neovim that automatically saves all of your changed buffers according to a predefined timeout value. Its main goals are:
 
 - to handle conditions/situations that `'autowriteall'` does not
 - to offer a complete, set-and-forget autosave/autowrite solution that saves your buffers for you when you want/need them saved
