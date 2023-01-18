@@ -4,7 +4,7 @@ local api = vim.api
 local sleep = vim.loop.sleep
 
 local function kill(pid, sig)
-    vim.fn.system { "kill", "-s", sig, pid }
+    vim.fn.system({ "kill", "-s", sig, pid })
     assert(
         vim.v.shell_error == 0,
         "kill failed with exit code " .. vim.v.shell_error
@@ -181,7 +181,7 @@ describe("neovim by default", function()
     end)
 
     it("doesn't automatically check file times upon leaving term", function()
-        local nvim = start_nvim {}
+        local nvim = start_nvim({})
         local tmp = vim.fn.tempname()
         assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
         nvim:req("nvim_set_option", "autoread", true)
@@ -192,8 +192,8 @@ describe("neovim by default", function()
             { output = false }
         )
 
-        local tab = nvim:req "nvim_get_current_tabpage"
-        local buf = nvim:req "nvim_get_current_buf"
+        local tab = nvim:req("nvim_get_current_tabpage")
+        local buf = nvim:req("nvim_get_current_buf")
         nvim:req("nvim_cmd", { cmd = "tabnew" }, { output = false })
         nvim:req("nvim_cmd", { cmd = "tabnew" }, { output = false })
 
@@ -219,14 +219,14 @@ end)
 
 describe("sos.nvim", function()
     it("should automatically check file times on resume", function()
-        local nvim = start_nvim {
+        local nvim = start_nvim({
             xargs = {
                 "-u",
                 "tests/min_init.lua",
                 "-c",
                 [[call v:lua.require'sos'.setup(#{ enabled: v:true })]],
             },
-        }
+        })
         local tmp = vim.fn.tempname()
         assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
         nvim:req("nvim_set_option", "autoread", true)
@@ -250,14 +250,14 @@ describe("sos.nvim", function()
     end)
 
     it("should automatically check file times upon leaving term", function()
-        local nvim = start_nvim {
+        local nvim = start_nvim({
             xargs = {
                 "-u",
                 "tests/min_init.lua",
                 "-c",
                 [[call v:lua.require'sos'.setup(#{ enabled: v:true })]],
             },
-        }
+        })
 
         local tmp = vim.fn.tempname()
         assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
@@ -269,8 +269,8 @@ describe("sos.nvim", function()
             { output = false }
         )
 
-        local tab = nvim:req "nvim_get_current_tabpage"
-        local buf = nvim:req "nvim_get_current_buf"
+        local tab = nvim:req("nvim_get_current_tabpage")
+        local buf = nvim:req("nvim_get_current_buf")
         nvim:req("nvim_cmd", { cmd = "tabnew" }, { output = false })
         nvim:req("nvim_cmd", { cmd = "tabnew" }, { output = false })
 

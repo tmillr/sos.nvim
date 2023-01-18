@@ -16,10 +16,10 @@ M.saveable_cmds = setmetatable({
 })
 
 -- TODO: Allow user to provide custom vim regex via opts/cfg?
-M.saveable_cmdline = vim.regex [=[system\|systemlist\|:lua\|[Jj][Oo][Bb]]=]
+M.saveable_cmdline = vim.regex([=[system\|systemlist\|:lua\|[Jj][Oo][Bb]]=])
 
 local recognized_buftypes =
-    vim.regex [[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]]
+    vim.regex([[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]])
 
 --- @param buf integer
 --- @return boolean

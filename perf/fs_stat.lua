@@ -49,4 +49,3 @@ t = loop.hrtime()
 for i = 1, nfiles, 1 do
     loop.fs_stat(tmpdir .. "/" .. tostring(i), proc_stat)
 end
-
