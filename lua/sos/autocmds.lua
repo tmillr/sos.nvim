@@ -1,5 +1,5 @@
-local impl = require("sos.impl")
 local M = {}
+local impl = require("sos.impl")
 local api = vim.api
 local augroup = "sos-autosaver"
 
@@ -57,7 +57,7 @@ function M.refresh(cfg)
     end
 
     if cfg.save_on_cmd then
-        -- NOTE: will not catch file reading/sourcing done in
+        -- NOTE: not foolproof, will not catch file reading/sourcing done in
         -- mappings/timers/autocmds/via functions/etc.
         api.nvim_create_autocmd("CmdlineLeave", {
             group = augroup,
@@ -75,7 +75,7 @@ function M.refresh(cfg)
                 end
 
                 if cfg.save_on_cmd ~= "all" then
-                    local cmdline = vim.fn.getcmdline()
+                    local cmdline = vim.fn.getcmdline() or ""
 
                     if
                         cfg.save_on_cmd == "some"
@@ -91,15 +91,15 @@ function M.refresh(cfg)
                         saveable_cmds = cfg.save_on_cmd --[[@as table<string, true>]]
                     end
 
-                    local ok, parsed = pcall(api.nvim_parse_cmd, cmdline)
-                    if not ok then return end
+                    repeat
+                        if cmdline == "" then return end
 
-                    while true do
-                        if saveable_cmds[parsed.cmd] then break end
-                        if (parsed.nextcmd or "") == "" then return end
-                        ok, parsed = api.nvim_parse_cmd(parsed.nextcmd, {})
+                        local ok, parsed =
+                            pcall(api.nvim_parse_cmd, cmdline, {})
+
                         if not ok then return end
-                    end
+                        cmdline = parsed.nextcmd or ""
+                    until saveable_cmds[parsed.cmd]
                 end
 
                 cfg.on_timer()
