@@ -40,7 +40,16 @@ function M.refresh(cfg)
             nested = true,
             desc = "Save buffer before leaving it",
             callback = function(info)
-                impl.write_buf_if_needed(info.buf)
+                local ok, err = impl.write_buf_if_needed(info.buf)
+
+                if not ok then
+                    api.nvim_err_writeln(
+                        ("[sos.nvim]: %s: %s"):format(
+                            err,
+                            api.nvim_buf_get_name(info.buf)
+                        )
+                    )
+                end
             end,
         })
     end
