@@ -50,7 +50,6 @@ local err
 --   when :confirm is used). This flag is set at least on :read and :file. See
 --   :h not-edited.
 -- * Use ++p flag to auto create parent dirs? Or prompt?
--- * Ensure 'write' is set, otherwise this will prob error with msg!?
 
 ---@return nil
 local function write_current_buf()
@@ -79,6 +78,7 @@ end
 function M.write_buf_if_needed(buf)
     if
         vim.bo[buf].mod
+        and vim.o.write
         and not vim.bo[buf].ro
         and api.nvim_buf_is_loaded(buf)
         and wanted_buftype(buf)
