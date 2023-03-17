@@ -147,7 +147,7 @@ In the meantime, if you are having issues due to a format-on-save setup and unti
 
 ## License
 
-[MIT](/LICENSE)
+[MIT](/LICENSE.txt)
 
 [issues]: /../../issues
 [prs]: /../../pulls
