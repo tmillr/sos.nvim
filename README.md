@@ -108,7 +108,7 @@ require("sos").setup {
     -- will replace the default fn/behavior which is to observe buffers which
     -- have: a normal 'buftype', 'ma', 'noro'. See lua/sos/impl.lua for the
     -- default behavior/fn.
-    --- @type fun(bufnr: integer): boolean
+    ---@type fun(bufnr: integer): boolean
     -- should_observe_buf = require("sos.impl").should_observe_buf,
 
     -- The function that is called when the shared/global timer fires. You
