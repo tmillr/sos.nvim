@@ -49,9 +49,9 @@ Cons
 TODO: Command/Fn/Opt to enable/disable locally (per buf)
 --]]
 
---- @class sos.Timer
---- @field start function
---- @field stop function
+---@class sos.Timer
+---@field start function
+---@field stop function
 
 local M = {}
 local cfg = require("sos.config")
@@ -137,8 +137,8 @@ else
     api.nvim_create_augroup(augroup_init, { clear = true })
 end
 
---- @param verbose? boolean
---- @return nil
+---@param verbose? boolean
+---@return nil
 local function main(verbose)
     if vim.v.vim_did_enter == 0 or vim.v.vim_did_enter == false then
         api.nvim_create_augroup(augroup_init, { clear = true })
@@ -163,12 +163,12 @@ local function main(verbose)
     end
 end
 
---- Missing keys in `opts` are left untouched and will continue to use their
---- current value, or will fallback to their default value if never previously
---- set.
---- @param opts? sos.Config
---- @param reset? boolean Reset all options to their defaults before applying `opts`
---- @return nil
+---Missing keys in `opts` are left untouched and will continue to use their
+---current value, or will fallback to their default value if never previously
+---set.
+---@param opts? sos.Config
+---@param reset? boolean Reset all options to their defaults before applying `opts`
+---@return nil
 function M.setup(opts, reset)
     vim.validate({ opts = { opts, "table", true } })
 

@@ -1,12 +1,12 @@
 local errmsg = require("sos.util").errmsg
 local api = vim.api
 
---- An object which observes multiple buffers for changes at once.
+---An object which observes multiple buffers for changes at once.
 local MultiBufObserver = {}
 
---- Constructor
---- @param cfg sos.Config
---- @param timer sos.Timer
+---Constructor
+---@param cfg sos.Config
+---@param timer sos.Timer
 function MultiBufObserver:new(cfg, timer)
     local did_start = false
     local did_destroy = false
@@ -22,13 +22,13 @@ function MultiBufObserver:new(cfg, timer)
 
     instance.on_timer = vim.schedule_wrap(instance.cfg.on_timer)
 
-    --- Called whenever a buffer incurs a saveable change (i.e.
-    --- writing the buffer would change the file's contents on the filesystem).
-    --- All this does is debounce the timer.
-    --- NOTE: this triggers often, so it should return quickly!
-    --- @param buf integer
-    --- @return true | nil
-    --- @nodiscard
+    ---Called whenever a buffer incurs a saveable change (i.e.
+    ---writing the buffer would change the file's contents on the filesystem).
+    ---All this does is debounce the timer.
+    ---NOTE: this triggers often, so it should return quickly!
+    ---@param buf integer
+    ---@return true | nil
+    ---@nodiscard
     function instance:on_change(buf)
         if self:should_detach(buf) then return true end -- detach
         local t = self.timer
@@ -38,9 +38,9 @@ function MultiBufObserver:new(cfg, timer)
         assert(result == 0, err)
     end
 
-    --- NOTE: this fires on EVERY single change of the buf
-    --- text, even if the text is replaced with the same text,
-    --- and fires on every keystroke in insert mode.
+    ---NOTE: this fires on EVERY single change of the buf
+    ---text, even if the text is replaced with the same text,
+    ---and fires on every keystroke in insert mode.
     instance.buf_callback.on_lines = function(_, buf)
         return instance:on_change(buf)
     end
@@ -50,9 +50,9 @@ function MultiBufObserver:new(cfg, timer)
         instance.pending_detach[buf] = nil
     end
 
-    --- Attach buffer callbacks if not already attached
-    --- @param buf integer
-    --- @return nil
+    ---Attach buffer callbacks if not already attached
+    ---@param buf integer
+    ---@return nil
     function instance:attach(buf)
         self.pending_detach[buf] = nil
 
@@ -69,8 +69,8 @@ function MultiBufObserver:new(cfg, timer)
         end
     end
 
-    --- @param buf integer
-    --- @return boolean | nil
+    ---@param buf integer
+    ---@return boolean | nil
     function instance:should_detach(buf)
         -- If/once the observer has been destroyed, we want to always return
         -- true here. This is because of the way that observing is
@@ -86,16 +86,16 @@ function MultiBufObserver:new(cfg, timer)
         return did_destroy or self.pending_detach[buf]
     end
 
-    --- Detach buffer callbacks if not already detached
-    --- @param buf integer
-    --- @return nil
+    ---Detach buffer callbacks if not already detached
+    ---@param buf integer
+    ---@return nil
     function instance:detach(buf)
         if self.listeners[buf] then self.pending_detach[buf] = true end
     end
 
-    --- Attach or detach buffer callbacks if needed
-    --- @param buf integer
-    --- @return nil
+    ---Attach or detach buffer callbacks if needed
+    ---@param buf integer
+    ---@return nil
     function instance:process_buf(buf)
         if buf == 0 then buf = api.nvim_get_current_buf() end
 
@@ -106,8 +106,8 @@ function MultiBufObserver:new(cfg, timer)
         end
     end
 
-    --- Destroy this observer
-    --- @return nil
+    ---Destroy this observer
+    ---@return nil
     function instance:destroy()
         did_destroy = true
 
@@ -120,7 +120,7 @@ function MultiBufObserver:new(cfg, timer)
         self.pending_detach = {}
     end
 
-    --- Begin observing buffers with this observer.
+    ---Begin observing buffers with this observer.
     function instance:start()
         assert(
             not did_start,

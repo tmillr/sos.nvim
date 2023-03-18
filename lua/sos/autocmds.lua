@@ -3,14 +3,14 @@ local impl = require("sos.impl")
 local api = vim.api
 local augroup = "sos-autosaver"
 
---- @return nil
+---@return nil
 function M.clear()
     api.nvim_create_augroup(augroup, { clear = true })
 end
 
---- Update defined autocmds according to `cfg`
---- @param cfg sos.Config
---- @return nil
+---Update defined autocmds according to `cfg`
+---@param cfg sos.Config
+---@return nil
 function M.refresh(cfg)
     api.nvim_create_augroup(augroup, { clear = true })
     if not cfg.enabled then return end

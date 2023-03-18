@@ -5,7 +5,7 @@ do
     -- TODO
     local msg_type = {}
 
-    --- Display an error message
+    ---Display an error message
     ---@param msg string
     ---@param how? "n" | "no"
     ---@return nil
