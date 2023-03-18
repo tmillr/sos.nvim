@@ -5,13 +5,124 @@
 
 local M = {}
 local api = vim.api
-local sleep = vim.loop.sleep
+local uv = vim.loop
+local sleep = uv.sleep
+local tmpfiles
 
-function M.write_file(fname, lines)
+function M.setup_plugin(...)
+    require("sos").setup(... or { enabled = true })
+end
+
+function M.bufwritemock(onwrite)
+    local state = { writes = {} }
+
+    api.nvim_create_autocmd("BufWriteCmd", {
+        -- group = augroup,
+        pattern = "*",
+        desc = "Mock buffer writes without actually writing anything",
+        once = false,
+        nested = false,
+        callback = function(info)
+            state[info.buf] = info
+            table.insert(state.writes, info)
+            vim.bo[info.buf].mod = false
+            if onwrite then onwrite(info) end
+        end,
+    })
+
+    return setmetatable({
+        clear = function()
+            state = { writes = {} }
+        end,
+    }, {
+        __index = function(_tbl, k)
+            return state[k]
+        end,
+    })
+end
+
+---@param file? string a file name taken as-is (no magic chars)
+---@return string output
+function M.silent_edit(file)
+    return api.nvim_cmd({
+        cmd = "edit",
+        args = { file },
+        magic = { file = false, bar = false },
+        mods = { silent = true },
+    }, { output = true })
+end
+
+---@param keys string
+---@param cb function
+function M.handle_prompt(keys, cb)
+    local timer = uv.new_timer()
+    timer:start(50, 50, function()
+        if api.nvim_get_mode().blocking then api.nvim_input(keys) end
+        timer:stop()
+        timer:close()
+    end)
+    local ok, result = pcall(cb)
+    timer:stop()
+    if not timer:is_closing() then timer:close() end
+    assert(ok, result)
+    return result
+end
+
+---@param content? string | (string|number)[]
+---@return string fname
+function M.tmpfile(content)
+    if not tmpfiles then
+        tmpfiles = {}
+
+        api.nvim_create_autocmd("VimLeave", {
+            pattern = "*",
+            desc = "Cleanup temp files",
+            nested = false,
+            callback = function()
+                for _, f in ipairs(tmpfiles) do
+                    vim.fn.delete(f)
+                end
+            end,
+        })
+    end
+
+    local tmp = vim.fn.tempname()
+    table.insert(tmpfiles, tmp)
+
     assert(
-        vim.fn.writefile(lines, fname, "b") == 0,
+        tmp and tmp ~= "",
+        "vim.fn.tempname() returned nil or empty string"
+    )
+
+    if content then
+        assert(
+            vim.fn.writefile(
+                type(content) == "table" and content or { content },
+                tmp,
+                "b"
+            ) == 0,
+            "Error: file write failed"
+        )
+    end
+
+    return tmp
+end
+
+---@param fname string
+---@param content? string|(string|number)[]
+---@param flags? string default: bS
+---@return string, (string|(string|number)[])?, string? args
+function M.write_file(fname, content, flags)
+    assert(
+        vim.fn.writefile(
+            type(content) == "table" and content or { content },
+            fname,
+            flags or "bS"
+        ) == 0,
         "Error: file write failed"
     )
+
+    return fname, content, flags
 end
 
 ---@param buf? integer
@@ -119,6 +230,115 @@ function M.with_nvim(opts, cb)
     local nvim = M.start_nvim(opts)
     cb(nvim)
     nvim:stop()
+end
+
+function M.autocmd(autocmd, opts)
+    local co
+    opts = opts or {}
+    local ret = { opts = opts, results = {} }
+    if opts.buffer == nil and opts.pattern == nil then opts.pattern = "*" end
+    if opts.once == nil then opts.once = true end
+    if opts.nested == nil then opts.nested = true end
+    if opts.callback == nil then
+        opts.callback = function(info)
+            table.insert(ret.results, info)
+            if co then
+                vim.schedule(function()
+                    coroutine.resume(co, ret)
+                end)
+            end
+        end
+    end
+
+    api.nvim_create_autocmd(autocmd, opts)
+
+    -- {
+    --     -- group = augroup,
+    --     pattern = "*",
+    --     -- desc = "",
+    --     once = true,
+    --     nested = true,
+    --     callback = vim.schedule_wrap(function(info)
+    --         coroutine.resume(co, info)
+    --     end),
+    -- })
+
+    function ret:await()
+        co = assert(
+            coroutine.running(),
+            "cannot await, not running in coroutine"
+        )
+
+        local timer = vim.defer_fn(function()
+            coroutine.resume(co, false, "timed out waiting for autocmd")
+        end, 10000)
+
+        local result = { coroutine.yield() }
+        timer:stop()
+        timer:close()
+        return assert(unpack(result))
+    end
+
+    return ret
+end
+
+function M.await_vim_enter()
+    if vim.v.vim_did_enter == 1 or vim.v.vim_did_enter == true then return end
+    return M.autocmd("VimEnter"):await()
+end
+
+---@param fn function
+---@return number ns
+function M.time_it_once(fn)
+    local start = vim.loop.hrtime()
+    fn()
+    return vim.loop.hrtime() - start
+end
+
+---@param times integer
+---@param fn function
+---@return number ns average time in nanoseconds
+function M.time_it(times, fn)
+    local res = {}
+    local i = 0
+
+    while i < times do
+        table.insert(res, M.time_it_once(fn))
+        i = i + 1
+    end
+
+    local sum = 0
+    i = 0
+
+    for _, x in ipairs(res) do
+        sum = sum + x
+        i = i + 1
+    end
+
+    return sum / i
+end
+
+---@param times integer
+---@param fn function
+function M.call_it(times, fn)
+    for _ = 1, times do
+        fn()
+    end
+end
+
+---@param ms integer
+---@param cb function
+---@return unknown
+function M.set_timeout(ms, cb)
+    local timer = vim.loop.new_timer()
+
+    timer:start(ms, 0, function()
+        timer:stop()
+        timer:close()
+        cb()
+    end)
+
+    return timer
 end
 
 return M
