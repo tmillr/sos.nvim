@@ -140,7 +140,9 @@ function MultiBufObserver:new(cfg, timer)
                 desc = "Handle buffer type and option changes",
                 callback = function(info)
                     if not info.buf then
-                        errmsg("OptionSet callback: autocmd event info missing `buf` (<abuf>)")
+                        errmsg(
+                            "OptionSet callback: autocmd event info missing `buf` (<abuf>)"
+                        )
                         return
                     end
 
@@ -168,7 +170,9 @@ function MultiBufObserver:new(cfg, timer)
                     local modified = vim.bo[buf].mod
 
                     if not buf then
-                        errmsg("BufModifiedSet callback: autocmd event info missing `buf` (<abuf>)")
+                        errmsg(
+                            "BufModifiedSet callback: autocmd event info missing `buf` (<abuf>)"
+                        )
                         return
                     end
 
@@ -176,7 +180,9 @@ function MultiBufObserver:new(cfg, timer)
                     -- not be able to become modified, so this event should
                     -- never fire for unloaded bufs.
                     if not api.nvim_buf_is_loaded(buf) then
-                        errmsg("unexpected BufModifiedSet event on unloaded buffer")
+                        errmsg(
+                            "unexpected BufModifiedSet event on unloaded buffer"
+                        )
                         return
                     end
 
