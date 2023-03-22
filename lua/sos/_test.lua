@@ -9,8 +9,30 @@ local uv = vim.loop
 local sleep = uv.sleep
 local tmpfiles
 
+---@return nil
+function M.await_schedule()
+    local co =
+        assert(coroutine.running(), "cannot await outside of coroutine")
+
+    vim.schedule(function()
+        coroutine.resume(co, true)
+    end)
+
+    M.set_timeout(5000, function()
+        coroutine.resume(
+            co,
+            false,
+            "timed out waiting for vim.schedule() callback"
+        )
+    end)
+
+    assert(coroutine.yield())
+end
+
+---@async
 function M.setup_plugin(...)
     require("sos").setup(... or { enabled = true })
+    M.await_vim_enter()
 end
 
 function M.bufwritemock(onwrite)
@@ -232,25 +254,27 @@ function M.with_nvim(opts, cb)
     nvim:stop()
 end
 
+---@param autocmd string | string[]
+---@param opts? {buffer: integer, pattern: string, once: boolean, nested: boolean, callback: function}
 function M.autocmd(autocmd, opts)
+    ---@type thread?
     local co
     opts = opts or {}
     local ret = { opts = opts, results = {} }
     if opts.buffer == nil and opts.pattern == nil then opts.pattern = "*" end
-    if opts.once == nil then opts.once = true end
+    if opts.once == nil then opts.once = false end
     if opts.nested == nil then opts.nested = true end
-    if opts.callback == nil then
-        opts.callback = function(info)
-            table.insert(ret.results, info)
-            if co then
-                vim.schedule(function()
-                    coroutine.resume(co, ret)
-                end)
-            end
-        end
-    end
 
-    api.nvim_create_autocmd(autocmd, opts)
+    api.nvim_create_autocmd(
+        autocmd,
+        vim.tbl_extend("force", opts, {
+            callback = function(info)
+                table.insert(ret.results, info)
+                if opts.callback then opts.callback() end
+                if co then coroutine.resume(co, ret) end
+            end,
+        })
+    )
 
     -- {
     --     -- group = augroup,
@@ -269,30 +293,34 @@ function M.autocmd(autocmd, opts)
             "cannot await, not running in coroutine"
         )
 
-        local timer = vim.defer_fn(function()
+        local timer = M.set_timeout(1e4, function()
             coroutine.resume(co, false, "timed out waiting for autocmd")
-        end, 10000)
+        end)
 
         local result = { coroutine.yield() }
+        co = nil
         timer:stop()
-        timer:close()
+        if not timer:is_closing() then timer:close() end
         return assert(unpack(result))
     end
 
     return ret
 end
 
+---@return nil
 function M.await_vim_enter()
     if vim.v.vim_did_enter == 1 or vim.v.vim_did_enter == true then return end
-    return M.autocmd("VimEnter"):await()
+    M.autocmd("VimEnter", { once = true }):await()
+    M.await_schedule()
 end
 
 ---@param fn function
 ---@return number ns
 function M.time_it_once(fn)
-    local start = vim.loop.hrtime()
+    local hrtime = vim.loop.hrtime
+    local start = hrtime()
     fn()
-    return vim.loop.hrtime() - start
+    return hrtime() - start
 end
 
 ---@param times integer
