@@ -1,7 +1,6 @@
 -- TODO: refactor test lib/utils so they can be shared/required and create
 -- dirs for each test type (e2e, unit, etc.) so things are better organized,
--- re-usable fn for testing autoread/checktime, seamless rpc requests via
--- metatable
+-- re-usable fn for testing autoread/checktime
 
 local M = {}
 local api = vim.api
@@ -224,7 +223,7 @@ function M.start_nvim(opts)
     end
 
     function self:suspend()
-        assert(self:req("nvim_input", "<C-Z>") > 0)
+        assert(self:input("<C-Z>") > 0)
     end
 
     function self:cont()
@@ -235,8 +234,18 @@ function M.start_nvim(opts)
         vim.fn.jobstop(jobid)
     end
 
+    setmetatable(self, {
+        __index = function(_, k)
+            return setmetatable({}, {
+                __call = function(_, ...)
+                    return self:req("nvim_" .. k, select(2, ...))
+                end,
+            })
+        end,
+    })
+
     assert(
-        self:req("nvim_eval", "v:vim_did_enter") == 1,
+        self:eval("v:vim_did_enter") == 1,
         "ERROR: vim has not entered yet"
     )
 
