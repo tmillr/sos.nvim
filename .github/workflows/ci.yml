@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get latest dependency versions
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           _LATEST_NVIM_RELEASE_ID="$(gh release view stable -R "${_NVIM_REPO:?}" --json id -q .id)"
 
