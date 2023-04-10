@@ -26,6 +26,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - run: printf %s=%s\\n HOME ~ >> "${GITHUB_ENV:?}"
+
       - name: Get latest dependency versions
         env:
           GH_TOKEN: ${{ github.token }}
@@ -51,28 +53,25 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: |
-            ~/nvim
-            ~/plenary
+            ${{ env.HOME }}/nvim
+            ${{ env.HOME }}/plenary
           key: ${{ runner.os }}-deps-nvim@${{ env._LATEST_NVIM_RELEASE_ID }}-plenary@${{ env._LATEST_PLENARY_TAG }}
 
       - if: ${{ !steps.restore-cache.outputs.cache-hit }}
         name: Download nvim
-        working-directory: ~
+        working-directory: ${{ env.HOME }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ls -lA
-          gh release download stable -R "${_NVIM_REPO:?}" -p nvim.appimage --clobber
-          mv *nvim* nvim
-          chmod u+x nvim
-          ./nvim --appimage-extract
-          ls -lA *nvim*
-          ls -lA
-          exit 1
+          gh release download stable -R "${_NVIM_REPO:?}" -p nvim.appimage
+          chmod u+x nvim.appimage
+          ./nvim.appimage --appimage-extract
+          rm nvim.appimage
+          mv squashfs-root nvim
 
       - if: ${{ !steps.restore-cache.outputs.cache-hit }}
         name: Download plenary
-        working-directory: ~
+        working-directory: ${{ env.HOME }}
         env:
           GITHUB_TOKEN:
           GH_TOKEN:
@@ -92,13 +91,14 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: |
-            ~/nvim
-            ~/plenary
+            ${{ env.HOME }}/nvim
+            ${{ env.HOME }}/plenary
           key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
       - uses: actions/checkout@v3
 
+      - name: Add nvim to PATH
+        run: echo ~/nvim/usr/bin >> "${GITHUB_PATH:?}"
+
       - name: Test
-        run: |
-          ln ~/nvim ~/.local/bin
-          make test
+        run: make test
