@@ -84,7 +84,6 @@ jobs:
           )"
           curl -L "${url:?}" | tar xzf -
           mv *plenary* plenary
-          ls -lA
 
       - if: ${{ !steps.restore-cache.outputs.cache-hit }}
         name: Cache deps
