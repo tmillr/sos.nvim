@@ -82,7 +82,7 @@ jobs:
           ${{ env._ARCHIVE_URL }}
           EOF
           )"
-          curl -L "${url:?}" | tar xf -
+          curl -L "${url:?}" | tar xzf -
           mv *plenary* plenary
           ls -lA
 
