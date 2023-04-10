@@ -65,8 +65,10 @@ jobs:
           gh release download stable -R "${_NVIM_REPO:?}" -p nvim.appimage --clobber
           mv *nvim* nvim
           chmod u+x nvim
-          ./nvim --version
+          ./nvim --appimage-extract
+          ls -lA *nvim*
           ls -lA
+          exit 1
 
       - if: ${{ !steps.restore-cache.outputs.cache-hit }}
         name: Download plenary
