@@ -3,7 +3,7 @@ name: CI
 env:
   _NVIM_REPO: neovim/neovim
   _PLENARY_REPO: nvim-lua/plenary.nvim
-  _ARCHIVE_URL: https://github.com/${repo}/archive/refs/tags/${tag}.tar.gz
+  _ARCHIVE_URL: https://github.com/${repo:?}/archive/refs/tags/${tag:?}.tar.gz
   PLENARY: ~/plenary
 
 on:
@@ -76,12 +76,12 @@ jobs:
           GITHUB_TOKEN:
           GH_TOKEN:
         run: |
-          ls -lA
           repo="${_PLENARY_REPO:?}"
           tag="${_LATEST_PLENARY_TAG:?}"
           url="$(cat <<EOF
           ${{ env._ARCHIVE_URL }}
-          EOF)"
+          EOF
+          )"
           curl -L "${url:?}" | tar xf -
           mv *plenary* plenary
           ls -lA
