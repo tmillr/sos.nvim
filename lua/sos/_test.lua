@@ -62,10 +62,13 @@ function M.bufwritemock(onwrite)
     })
 end
 
----@param file? string a file name taken as-is (no magic chars)
 ---@return string output
-function M.silent_edit(file)
-    return api.nvim_cmd({
+---@overload fun(nvim: table, file?: string): string
+---@overload fun(file?: string): string
+function M.silent_edit(...)
+    local external_nvim_or_api, file = M.nvim_recv_or_api(...)
+
+    return external_nvim_or_api.nvim_cmd({
         cmd = "edit",
         args = { file },
         magic = { file = false, bar = false },
@@ -146,10 +149,12 @@ function M.write_file(fname, content, flags)
     return fname, content, flags
 end
 
----@param buf? integer
----@return boolean
-function M.buf_empty(buf)
-    local lines = api.nvim_buf_get_lines(buf or 0, 0, -1, true)
+---@overload fun(nvim: table, buf?: integer): boolean
+---@overload fun(buf?: integer): boolean
+function M.buf_empty(...)
+    local external_nvim_or_api, buf = M.nvim_recv_or_api(...)
+    local lines =
+        external_nvim_or_api.nvim_buf_get_lines(buf or 0, 0, -1, true)
     local t = type(lines)
     assert(t == "table", "expected table, got " .. t)
     local n = #lines
@@ -169,7 +174,22 @@ function M.kill(pid, sig)
     )
 end
 
----Spawn an nvim instance.
+---Helper fn that prepends `vim.api` to args if the first arg is not an
+---external nvim process.
+---
+---Enables a pattern for redirecting nvim api calls (to an external nvim
+---process) depending upon how the outer/enclosing function was called
+---(its arguments). The caller/enclosing function should forward-on its own
+---arguments as args to this function.
+---@param ... unknown args
+---@return table, unknown
+function M.nvim_recv_or_api(...)
+    local arg1 = ...
+    if type(arg1) == "table" and arg1.is_nvim_proc then return ... end
+    return api, ...
+end
+
+---Spawns an nvim instance.
 ---@param opts? { xargs: string[] }
 ---@return table
 function M.start_nvim(opts)
@@ -189,6 +209,8 @@ function M.start_nvim(opts)
     local jobid = vim.fn.jobstart({
         "nvim",
         "--clean",
+        "-u",
+        "tests/min_init.lua",
         "--listen",
         sock_addr,
         unpack(opts and opts.xargs or {}),
@@ -216,7 +238,12 @@ function M.start_nvim(opts)
         "ERROR: sockconnect(): invalid arguments or connection failure"
     )
 
-    local self = { sock = sock_addr, chan = chan, pid = vim.fn.jobpid(jobid) }
+    local self = {
+        sock = sock_addr,
+        chan = chan,
+        pid = vim.fn.jobpid(jobid),
+        is_nvim_proc = true,
+    }
 
     function self:req(...)
         return vim.rpcrequest(self.chan, ...)
@@ -235,12 +262,16 @@ function M.start_nvim(opts)
     end
 
     setmetatable(self, {
-        __index = function(_, k)
-            return setmetatable({}, {
-                __call = function(_, ...)
-                    return self:req("nvim_" .. k, select(2, ...))
-                end,
-            })
+        __index = function(_, key)
+            return M[key]
+                or setmetatable({}, {
+                    __call = function(_, ...)
+                        return self:req(
+                            "nvim_" .. key:gsub("^nvim_", "", 1),
+                            select(... == self and 2 or 1, ...)
+                        )
+                    end,
+                })
         end,
     })
 
