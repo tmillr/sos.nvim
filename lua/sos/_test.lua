@@ -161,6 +161,21 @@ function M.buf_empty(...)
     return n < 2 and (lines[1] == "" or n == 0)
 end
 
+---@overload fun(nvim: table, cmd: string): boolean
+---@overload fun(cmd: string): boolean
+function M.non_magic_cmd(...)
+    local external_nvim_or_api, cmd = M.nvim_recv_or_api(...)
+    local parsed = external_nvim_or_api.nvim_parse_cmd(cmd, {})
+    parsed.magic = { file = false, bar = false }
+    return external_nvim_or_api.nvim_cmd(parsed, { output = true })
+end
+
+---@param path string
+---@return boolean
+function M.file_exists(path)
+    return vim.fn.getftype(path) ~= ""
+end
+
 ---Send signal `sig` to process `pid`.
 ---@param pid integer
 ---@param sig string
