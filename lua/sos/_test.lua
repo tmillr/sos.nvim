@@ -190,9 +190,11 @@ function M.nvim_recv_or_api(...)
 end
 
 ---Spawns an nvim instance.
----@param opts? { xargs: string[] }
+---@param opts? { xargs: string[], min_init: boolean|nil }
 ---@return table
 function M.start_nvim(opts)
+    opts = opts or {}
+
     local job_opts = {
         width = 120,
         height = 80,
@@ -204,18 +206,25 @@ function M.start_nvim(opts)
         stdout_buffered = true,
     }
 
-    local sock_addr = vim.fn.tempname()
+    local sock_addr = M.tmpfile()
 
-    local jobid = vim.fn.jobstart({
+    local args = {
         "nvim",
         "--clean",
-        "-u",
-        "tests/min_init.lua",
+        "-n", -- no swap
+        "-i", -- no shada
+        "NONE",
         "--listen",
         sock_addr,
         unpack(opts and opts.xargs or {}),
-    }, job_opts)
+    }
 
+    if opts.min_init then
+        table.insert(args, 2, "tests/min_init.lua")
+        table.insert(args, 2, "-u")
+    end
+
+    local jobid = vim.fn.jobstart(args, job_opts)
     local chan
 
     do
