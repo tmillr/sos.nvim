@@ -2,8 +2,12 @@ xpcall(function()
     vim.o.updatecount = 0
     vim.o.swapfile = false
     vim.o.shadafile = "NONE"
+    vim.o.aw = false
+    vim.o.awa = false
     vim.o.more = false
     vim.o.shortmessage = "FWI"
+    vim.o.showmode = false
+    vim.o.showcmd = false
     vim.opt.rtp:append(vim.fn.expand("<sfile>:h:h"))
     -- vim.cmd "runtime! plugin/**/*.vim"
     -- vim.cmd "runtime! plugin/**/*.lua"
