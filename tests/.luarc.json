@@ -3,6 +3,10 @@
   "Lua.runtime.version": "LuaJIT",
   "Lua.diagnostics.globals": ["vim"],
   "Lua.diagnostics.unusedLocalExclude": ["_*"],
-  "workspace.ignoreDir": ["tests", "_test"],
+  "workspace.library": [
+    "../",
+    "${3rd}/luassert/library",
+    "${3rd}/busted/library"
+  ],
   "workspace.checkThirdParty": false
 }

@@ -36,7 +36,7 @@ loaded/reloaded with regular commands like `:edit` (i.e. they are read from the
 filesystem when the session file is sourced).
 --]]
 
-local util = require("sos._test")
+local util = require("sos._test.util")
 
 describe("vim session", function()
     local tmp, sessfile

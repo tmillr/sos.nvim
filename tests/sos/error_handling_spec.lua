@@ -1,5 +1,5 @@
 local api = vim.api
-local util = require("sos._test")
+local util = require("sos._test.util")
 
 describe("while writing all modified bufs", function()
     before_each(function()

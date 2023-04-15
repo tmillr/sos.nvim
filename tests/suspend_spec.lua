@@ -1,25 +1,31 @@
 local api = vim.api
 local sleep = vim.loop.sleep
-local util = require("sos._test")
+local util = require("sos._test.util")
 
 describe("test harness", function()
     it("can suspend and resume", function()
         local nvim = util.start_nvim()
+        local got_suspend = util.tmpfile()
+        local got_resume = util.tmpfile()
+        local res = {}
 
         nvim:create_autocmd("VimSuspend", {
             once = true,
             nested = false,
-            command = "let g:got_suspend = v:true",
+            command = ("lua vim.fn.writefile({}, [[%s]])"):format(
+                got_suspend
+            ),
         })
 
         nvim:create_autocmd("VimResume", {
             once = true,
             nested = false,
-            command = "let g:got_resume = v:true",
+            command = ("lua vim.fn.writefile({}, [[%s]])"):format(got_resume),
         })
 
         nvim:suspend()
         sleep(500)
+        res.got_VimSuspend = util.file_exists(got_suspend)
 
         -- for extra confirmation of proc state, but doesn't seem to work
         -- local out = vim.fn.system { "ps", "-p", pid, "-o", "state=" }
@@ -27,8 +33,15 @@ describe("test harness", function()
 
         nvim:cont()
         sleep(500)
-        assert(nvim:eval("g:got_suspend") == true)
-        assert(nvim:eval("g:got_resume") == true)
+        res.got_VimResume = util.file_exists(got_resume)
+        res.got_VimSuspend_after_resuming = not res.got_VimSuspend
+            and util.file_exists(got_suspend)
+
+        assert.are.same({
+            got_VimSuspend = true,
+            got_VimResume = true,
+            got_VimSuspend_after_resuming = false,
+        }, res)
     end)
 end)
 
@@ -148,8 +161,7 @@ describe("sos.nvim", function()
             },
         })
 
-        local tmp = vim.fn.tempname()
-        assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
+        local tmp = util.tmpfile("old")
         nvim:set_option("autoread", true)
         nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })
         sleep(500)
@@ -159,8 +171,7 @@ describe("sos.nvim", function()
         sleep(500)
         nvim:cont()
         sleep(500)
-        assert(table.concat(nvim:buf_get_lines(0, 0, -1, true), "") == "new")
-        vim.fn.delete(tmp)
+        assert.are.same({ "new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
 
     it("should automatically check file times upon leaving term", function()
@@ -173,8 +184,7 @@ describe("sos.nvim", function()
             },
         })
 
-        local tmp = vim.fn.tempname()
-        assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
+        local tmp = util.tmpfile("old")
         nvim:set_option("autoread", true)
 
         nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })
@@ -194,11 +204,6 @@ describe("sos.nvim", function()
 
         -- visit different tab thereby leaving term
         nvim:set_current_tabpage(tab) -- trigger sos to check file times (which triggers autoread)
-
-        assert(
-            table.concat(nvim:buf_get_lines(buf, 0, -1, true), "") == "new"
-        )
-
-        vim.fn.delete(tmp)
+        assert.are.same({ "new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
 end)

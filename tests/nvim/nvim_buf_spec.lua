@@ -1,5 +1,5 @@
 local api = vim.api
-local util = require("sos._test")
+local util = require("sos._test.util")
 
 describe("nvim_buf_attach() buf callbacks", function()
     it("should detach on buf unload", function()
