@@ -1,3 +1,5 @@
+local api = vim.api
+
 local function time_it_once(fn)
     local start = vim.loop.hrtime()
     fn()
@@ -35,7 +37,7 @@ end
 
 local function manual()
     local filtered = {}
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    for _, buf in ipairs(api.nvim_list_bufs()) do
         if vim.bo[buf].mod then table.insert(filtered, buf) end
     end
 

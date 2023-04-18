@@ -1,3 +1,5 @@
+local api = vim.api
+
 xpcall(function()
     vim.o.updatecount = 0
     vim.o.swapfile = false
@@ -65,9 +67,6 @@ xpcall(function()
         vim.cmd("runtime! plugin/sos." .. ext)
     end
 end, function(e)
-    vim.api.nvim_chan_send(
-        vim.v.stderr,
-        "\027[31mError: " .. e .. "\027[0m\n"
-    )
+    api.nvim_chan_send(vim.v.stderr, "\027[31mError: " .. e .. "\027[0m\n")
     vim.cmd("cq")
 end)

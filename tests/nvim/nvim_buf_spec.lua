@@ -6,7 +6,7 @@ describe("nvim_buf_attach() buf callbacks", function()
         local buf = api.nvim_create_buf(true, false)
         local detached
 
-        vim.api.nvim_buf_attach(buf, false, {
+        api.nvim_buf_attach(buf, false, {
             on_detach = function()
                 detached = true
             end,
