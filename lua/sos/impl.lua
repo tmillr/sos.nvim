@@ -3,8 +3,9 @@ local api = vim.api
 local uv = vim.loop
 
 ---@type table<string, boolean>
-M.saveable_cmds = setmetatable({
+M.savable_cmds = setmetatable({
     ["!"] = true,
+    ["="] = true, -- alias/shorthand for `lua=`
     lua = true, -- because lua often reads files via require() and various other fn's
     luafile = true,
     make = true,
@@ -17,7 +18,7 @@ M.saveable_cmds = setmetatable({
 })
 
 -- TODO: Allow user to provide custom vim regex via opts/cfg?
-M.saveable_cmdline = vim.regex([=[system\|:lua\|[Jj][Oo][Bb]]=])
+M.savable_cmdline = vim.regex([=[system\|:lua\|[Jj][Oo][Bb]]=])
 
 local recognized_buftypes = vim.regex(
     [[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]]

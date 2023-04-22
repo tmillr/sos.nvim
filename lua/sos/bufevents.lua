@@ -22,7 +22,7 @@ function MultiBufObserver:new(cfg, timer)
 
     instance.on_timer = vim.schedule_wrap(instance.cfg.on_timer)
 
-    ---Called whenever a buffer incurs a saveable change (i.e.
+    ---Called whenever a buffer incurs a savable change (i.e.
     ---writing the buffer would change the file's contents on the filesystem).
     ---All this does is debounce the timer.
     ---NOTE: this triggers often, so it should return quickly!
@@ -190,12 +190,12 @@ function MultiBufObserver:new(cfg, timer)
                     -- buf is written
                     if modified then
                         self:process_buf(buf)
-                        -- Manually signal saveable change because:
+                        -- Manually signal savable change because:
                         --     1. Callbacks/listeners may not have been
                         --        attached when BufModifiedSet fired, in which
                         --        case they will have missed this change.
                         --
-                        --     2. `buf` may have incurred a saveable change
+                        --     2. `buf` may have incurred a savable change
                         --        even though no text changed (see `:h
                         --        'mod'`), and that is what made
                         --        BufModifiedSet fire. Since we're not using

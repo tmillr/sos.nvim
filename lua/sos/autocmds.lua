@@ -88,16 +88,16 @@ function M.refresh(cfg)
 
                     if
                         cfg.save_on_cmd == "some"
-                        and impl.saveable_cmdline:match_str(cmdline)
+                        and impl.savable_cmdline:match_str(cmdline)
                     then
                         cfg.on_timer()
                         return
                     end
 
-                    local saveable_cmds = impl.saveable_cmds
+                    local savable_cmds = impl.savable_cmds
 
                     if type(cfg.save_on_cmd) == "table" then
-                        saveable_cmds = cfg.save_on_cmd --[[@as table<string, true>]]
+                        savable_cmds = cfg.save_on_cmd --[[@as table<string, true>]]
                     end
 
                     repeat
@@ -108,7 +108,7 @@ function M.refresh(cfg)
 
                         if not ok then return end
                         cmdline = parsed.nextcmd or ""
-                    until saveable_cmds[parsed.cmd]
+                    until savable_cmds[parsed.cmd]
                 end
 
                 cfg.on_timer()
