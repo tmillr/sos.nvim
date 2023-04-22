@@ -3,6 +3,6 @@
   "Lua.runtime.version": "LuaJIT",
   "Lua.diagnostics.globals": ["vim"],
   "Lua.diagnostics.unusedLocalExclude": ["_*", "api"],
-  "workspace.ignoreDir": ["tests", "_test"],
+  "workspace.ignoreDir": ["tests", "_test", "perf"],
   "workspace.checkThirdParty": false
 }
