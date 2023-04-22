@@ -130,6 +130,24 @@ All of the available commands are defined [here](/plugin/sos.lua).
 
 - Decrease the `timeout` value if you'd like more frequent/responsive autosaving behavior (e.g. `10000` for 10 seconds, or `5000` for 5 seconds). It's probably best not to go below 5 seconds however.
 
+## FAQ
+
+### How do I discard all changes that I have made in a buffer? Before, I could just use or `:e!` or `:q!`.
+
+If you have just finished working on a buffer and the (original) version of the file you need is not staged/committed/stored in your vcs/git (in which case you could also just checkout the file at the version you need, restore the working tree file, etc.), you cannot just use `e!` or `:q!` to discard your changes; instead, use vim's builtin undo (see `:help undo.txt`) ***before*** reloading or discarding the buffer. If you didn't make many changes, you can just use `u` repeatedly (you can even hold it) in normal mode until you get back to the state you are looking for (likewise use `CTRL-R` to redo). To get back the buffer as it was when it was first opened, in one go, you can use the command `:ea 999d`. To make things even easier, you can create your own command or mapping for the following command:
+
+```vim
+execute 'earlier' .. v:numbermax
+```
+
+> **Note** these `:earlier` commands to get back to the original state of the buffer will not work as expected if you are using `'undofile'` or persisting undo history
+
+> **Note** undo history is lost when the buffer is unloaded
+
+If you feel the need to persist your undo history to the filesystem, checkout `:help persistent-undo` and `:help 'undofile'`. For more precise undo history introspection and traversal, you can install an undo history plugin, such as [undotree].
+
+A custom recovery solution could be devised and added to the plugin (e.g. automatically caching files in RAM, vim buffers, or fs/git), but such a thing seems overkill and unnecessary at the moment. I haven't had any major issues myself utilizing only git and vim's undo history.
+
 ## Interaction with format on save
 
 I believe that there are generally 2 main reasons/pros for using format on save:
@@ -152,3 +170,4 @@ In the meantime, if you are having issues due to a format-on-save setup and unti
 [issues]: /../../issues
 [prs]: /../../pulls
 [q&a]: /../../discussions/categories/q-a
+[undotree]: ../../../../mbbill/undotree
