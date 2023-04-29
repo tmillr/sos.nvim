@@ -124,7 +124,7 @@ require("sos").setup {
 
 ## Commands
 
-All of the available commands are defined [here](/plugin/sos.lua).
+All of the available commands are defined [here](/lua/sos/commands.lua).
 
 ## Tips
 

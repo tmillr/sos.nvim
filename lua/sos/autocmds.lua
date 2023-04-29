@@ -1,5 +1,6 @@
 local M = {}
 local impl = require("sos.impl")
+local commands = require("sos.commands")
 local api = vim.api
 local augroup = "sos-autosaver"
 
@@ -25,12 +26,12 @@ function M.refresh(cfg)
     })
 
     api.nvim_create_autocmd("VimLeavePre", {
+        desc = "Cleanup",
         group = augroup,
         pattern = "*",
-        desc = "Cleanup",
-        callback = function()
-            require("sos").stop()
-        end,
+        once = true,
+        nested = false,
+        command = [[silent call v:lua.require'sos.commands'.SosDisable()]],
     })
 
     if cfg.save_on_bufleave then
@@ -83,9 +84,9 @@ function M.refresh(cfg)
                     return
                 end
 
-                if cfg.save_on_cmd ~= "all" then
-                    local cmdline = vim.fn.getcmdline() or ""
+                local cmdline = vim.fn.getcmdline() or ""
 
+                if cfg.save_on_cmd ~= "all" then
                     if
                         cfg.save_on_cmd == "some"
                         and impl.savable_cmdline:match_str(cmdline)
@@ -109,6 +110,11 @@ function M.refresh(cfg)
                         if not ok then return end
                         cmdline = parsed.nextcmd or ""
                     until savable_cmds[parsed.cmd]
+                else
+                    local ok, parsed = pcall(api.nvim_parse_cmd, cmdline, {})
+                    if ok and require("sos.commands")[parsed.cmd] then
+                        return
+                    end
                 end
 
                 cfg.on_timer()
