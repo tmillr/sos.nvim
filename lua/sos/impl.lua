@@ -25,13 +25,16 @@ local recognized_buftypes = vim.regex(
 )
 
 ---@param buf integer
+---@nodiscard
 ---@return boolean
 local function wanted_buftype(buf)
     local buftype = vim.bo[buf].bt
 
     if not recognized_buftypes:match_str(buftype) then
         vim.notify_once(
-            string.format([[[sos.nvim]: unknown buftype: "%s"]], buftype),
+            ('[sos.nvim]: ignoring buf with unknown buftype "%s"'):format(
+                buftype
+            ),
             vim.log.levels.WARN
         )
 
@@ -97,6 +100,7 @@ function M.write_buf_if_needed(buf)
             local stat, _errmsg, _errname = uv.fs_stat(name)
 
             if stat then
+                -- If file exists, only write if it's a regular file
                 if stat.type == "file" then return write_buf(buf) end
             else
                 -- TODO: Try stat again on error (or certain errors)?

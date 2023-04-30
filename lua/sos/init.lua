@@ -84,7 +84,7 @@ local function manage_vim_opts(config, plug_enabled)
     -- it then.
 end
 
-function M.start(verbose)
+local function start(verbose)
     manage_vim_opts(cfg, true)
     autocmds.refresh(cfg)
     if __sos_autosaver__.buf_observer ~= nil then return end
@@ -96,7 +96,7 @@ function M.start(verbose)
     if verbose then vim.notify("[sos.nvim]: enabled", vim.log.levels.INFO) end
 end
 
-function M.stop(verbose)
+local function stop(verbose)
     manage_vim_opts(cfg, false)
     autocmds.clear()
     if __sos_autosaver__.buf_observer == nil then return end
@@ -132,7 +132,7 @@ else
     -- Plugin was reloaded somehow
     rawset(cfg, "enabled", nil)
     -- Destroy the old observer
-    M.stop()
+    stop()
     -- Cancel potential pending call (if vim hasn't entered yet)
     api.nvim_create_augroup(augroup_init, { clear = true })
 end
@@ -157,9 +157,9 @@ local function main(verbose)
     end
 
     if cfg.enabled then
-        M.start(verbose)
+        start(verbose)
     else
-        M.stop(verbose)
+        stop(verbose)
     end
 end
 

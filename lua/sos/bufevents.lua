@@ -45,6 +45,13 @@ function MultiBufObserver:new(cfg, timer)
         return instance:on_change(buf)
     end
 
+    ---TODO: Could this leak memory? A new fn/closure is created every time
+    ---a new observer is created. The closure references `instance`, while nvim
+    ---refs the closure (even after the observer is destroyed). The ref to the
+    ---closure isn't/can't be dropped until the next time `on_lines` triggers,
+    ---which may be awhile or never even. A buildup of allocated memory might
+    ---happen simply by disabling and enabling sos over and over again as new
+    ---callbacks/closures are attached and old ones aren't detached.
     instance.buf_callback.on_detach = function(_, buf)
         instance.listeners[buf] = nil
         instance.pending_detach[buf] = nil
@@ -62,7 +69,7 @@ function MultiBufObserver:new(cfg, timer)
                     on_lines = instance.buf_callback.on_lines,
                     on_detach = instance.buf_callback.on_detach,
                 }),
-                "failed to attach to buffer " .. buf
+                "[sos.nvim]: failed to attach to buffer " .. buf
             )
 
             self.listeners[buf] = true
@@ -139,13 +146,6 @@ function MultiBufObserver:new(cfg, timer)
                 pattern = { "buftype", "readonly", "modifiable" },
                 desc = "Handle buffer type and option changes",
                 callback = function(info)
-                    if not info.buf then
-                        errmsg(
-                            "OptionSet callback: autocmd event info missing `buf` (<abuf>)"
-                        )
-                        return
-                    end
-
                     self:process_buf(info.buf)
                 end,
             }),
@@ -169,19 +169,12 @@ function MultiBufObserver:new(cfg, timer)
                     local buf = info.buf
                     local modified = vim.bo[buf].mod
 
-                    if not buf then
-                        errmsg(
-                            "BufModifiedSet callback: autocmd event info missing `buf` (<abuf>)"
-                        )
-                        return
-                    end
-
                     -- Can only attach if loaded. Also, an unloaded buf should
                     -- not be able to become modified, so this event should
                     -- never fire for unloaded bufs.
                     if not api.nvim_buf_is_loaded(buf) then
                         errmsg(
-                            "unexpected BufModifiedSet event on unloaded buffer"
+                            "[sos.nvim]: unexpected BufModifiedSet event on unloaded buffer"
                         )
                         return
                     end

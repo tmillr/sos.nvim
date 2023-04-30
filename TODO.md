@@ -106,3 +106,5 @@
       file/buf the err msg is for).
 
 - [ ] Save on command doesn't work with `luafile %`?
+
+- [ ] feat: opt (and maybe cmd/func) to disable timer
