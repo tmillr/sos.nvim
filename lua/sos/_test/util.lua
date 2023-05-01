@@ -6,31 +6,52 @@ local M = {}
 local api = vim.api
 local uv = vim.loop
 local sleep = uv.sleep
+local co = coroutine
 local tmpfiles
+
+---@param schedwrap boolean
+function M.coroutine_resumer(schedwrap)
+    local curr_co = co.running()
+
+    if schedwrap then
+        return vim.schedule_wrap(function(...)
+            co.resume(curr_co, ...)
+        end)
+    end
+
+    return function(...)
+        co.resume(curr_co, ...)
+    end
+end
 
 ---@return nil
 function M.await_schedule()
-    local co =
-        assert(coroutine.running(), "cannot await outside of coroutine")
+    local curr_co = co.running()
 
-    vim.schedule(function()
-        coroutine.resume(co, true)
-    end)
-
-    M.set_timeout(5000, function()
-        coroutine.resume(
-            co,
+    local timeout = M.set_timeout(5000, function()
+        co.resume(
+            curr_co,
             false,
             "timed out waiting for vim.schedule() callback"
         )
     end)
 
-    assert(coroutine.yield())
+    vim.schedule(function()
+        timeout:stop()
+        co.resume(curr_co, true)
+    end)
+
+    assert(co.yield())
 end
 
 ---@async
 function M.setup_plugin(...)
-    require("sos").setup(... or { enabled = true })
+    -- require("sos").setup(nil, true)
+    if select("#", ...) > 0 then
+        require("sos").setup(...)
+    else
+        require("sos").setup({ enabled = true })
+    end
     M.await_vim_enter()
 end
 
@@ -322,7 +343,7 @@ end
 ---@param opts? {buffer: integer, pattern: string, once: boolean, nested: boolean, callback: function}
 function M.autocmd(autocmd, opts)
     ---@type thread?
-    local co
+    local curr_co
     opts = opts or {}
     local ret = { opts = opts, results = {} }
     if opts.buffer == nil and opts.pattern == nil then opts.pattern = "*" end
@@ -335,7 +356,7 @@ function M.autocmd(autocmd, opts)
             callback = function(info)
                 table.insert(ret.results, info)
                 if opts.callback then opts.callback() end
-                if co then coroutine.resume(co, ret) end
+                if curr_co then co.resume(curr_co, ret) end
             end,
         })
     )
@@ -352,17 +373,15 @@ function M.autocmd(autocmd, opts)
     -- })
 
     function ret:await()
-        co = assert(
-            coroutine.running(),
-            "cannot await, not running in coroutine"
-        )
+        curr_co =
+            assert(co.running(), "cannot await, not running in coroutine")
 
         local timer = M.set_timeout(1e4, function()
-            coroutine.resume(co, false, "timed out waiting for autocmd")
+            co.resume(co, false, "timed out waiting for autocmd")
         end)
 
-        local result = { coroutine.yield() }
-        co = nil
+        local result = { co.yield() }
+        curr_co = nil
         timer:stop()
         if not timer:is_closing() then timer:close() end
         return assert(unpack(result))
