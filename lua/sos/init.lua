@@ -54,9 +54,9 @@ TODO: Command/Fn/Opt to enable/disable locally (per buf)
 ---@field stop function
 
 local M = {}
-local cfg = require("sos.config")
-local MultiBufObserver = require("sos.bufevents")
-local autocmds = require("sos.autocmds")
+local cfg = require "sos.config"
+local MultiBufObserver = require "sos.bufevents"
+local autocmds = require "sos.autocmds"
 local errmsg = require("sos.util").errmsg
 local api = vim.api
 local loop = vim.loop
@@ -170,7 +170,7 @@ end
 ---@param reset? boolean Reset all options to their defaults before applying `opts`
 ---@return nil
 function M.setup(opts, reset)
-    vim.validate({ opts = { opts, "table", true } })
+    vim.validate { opts = { opts, "table", true } }
 
     if reset then
         for _, k in ipairs(vim.tbl_keys(cfg)) do

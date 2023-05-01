@@ -36,7 +36,7 @@ loaded/reloaded with regular commands like `:edit` (i.e. they are read from the
 filesystem when the session file is sourced).
 --]]
 
-local util = require("sos._test.util")
+local util = require "sos._test.util"
 
 describe("vim session", function()
     local tmp, sessfile
@@ -52,7 +52,7 @@ describe("vim session", function()
         util.with_nvim(function(nvim)
             nvim:silent_edit(tmp)
             nvim:buf_set_lines(0, 0, -1, true, { "initial content" })
-            nvim:command("write")
+            nvim:command "write"
 
             -- Save session
             nvim:command("mksession " .. sessfile)
@@ -71,7 +71,7 @@ describe("vim session", function()
             -- We save our changes, but forget to update the session. Next
             -- time we restore the session, the buf(s) will be outdated and not
             -- reflective of their current state on the fs?
-            nvim:command("write")
+            nvim:command "write"
         end)
 
         -- Open new nvim, we restore our session (which we might not realize
@@ -96,7 +96,7 @@ describe("vim session", function()
         util.with_nvim(function(nvim)
             nvim:silent_edit(tmp)
             nvim:buf_set_lines(0, 0, -1, true, { "initial content" })
-            nvim:command("write")
+            nvim:command "write"
             nvim:command("mksession " .. sessfile)
             --TODO: what if sess is loaded here after deleting the file?
         end)

@@ -1,5 +1,5 @@
 local api = vim.api
-local t = require("sos._test")
+local t = require "sos._test"
 local CR = api.nvim_replace_termcodes("<CR>", true, false, true)
 local ESC = api.nvim_replace_termcodes("<Esc>", true, false, true)
 local state
@@ -47,14 +47,14 @@ end
 describe("save on cmd", function()
     local tmp
     -- vim.cmd("SosEnable")
-    require("sos").setup({ enabled = true, timeout = 600000 })
+    require("sos").setup { enabled = true, timeout = 600000 }
 
     -- Cmdlines which should trigger a save prior to executing
     local should_save = { ":luafile %", ":source %" }
     local shouldnt_save = { ":SosDisable", ":SosToggle" }
 
     before_each(function()
-        vim.cmd("bw!")
+        vim.cmd "bw!"
         state = {}
         tmp = vim.fn.tempname() .. ".lua"
         vim.cmd.edit(tmp)
@@ -87,13 +87,13 @@ describe("save on cmd", function()
     for _, cmdline in ipairs(should_save) do
         it(
             string.format("should save on: %s<CR>", cmdline),
-            create_test_fn({
+            create_test_fn {
                 cmdline = cmdline,
                 abort_cmdline = false,
                 expect_autocmd = true,
                 expect_save = true,
                 expect_save_before_cmdline_exec = true,
-            })
+            }
         )
     end
 
@@ -103,24 +103,24 @@ describe("save on cmd", function()
                 "shouldn't save if cmdline aborted: %s<Esc>",
                 cmdline
             ),
-            create_test_fn({
+            create_test_fn {
                 cmdline = cmdline,
                 abort_cmdline = true,
                 expect_autocmd = true,
                 expect_save = false,
-            })
+            }
         )
     end
 
     for _, cmdline in ipairs(shouldnt_save) do
         it(
             string.format("shouldn't save on: %s<CR>", cmdline),
-            create_test_fn({
+            create_test_fn {
                 cmdline = cmdline,
                 abort_cmdline = false,
                 expect_autocmd = true,
                 expect_save = false,
-            })
+            }
         )
     end
 end)

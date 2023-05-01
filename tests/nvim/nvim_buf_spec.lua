@@ -1,5 +1,5 @@
 local api = vim.api
-local util = require("sos._test.util")
+local util = require "sos._test.util"
 
 describe("nvim_buf_attach() buf callbacks", function()
     it("should detach on buf unload", function()
@@ -20,13 +20,13 @@ end)
 
 describe("nvim_buf_call()", function()
     before_each(function()
-        vim.cmd("silent %bw")
+        vim.cmd "silent %bw"
     end)
 
     it("shouldn't end insert mode", function()
-        util.silent_edit(util.tmpfile(""))
+        util.silent_edit(util.tmpfile "")
         local buf1 = api.nvim_get_current_buf()
-        vim.cmd("silent tabnew")
+        vim.cmd "silent tabnew"
         util.silent_edit(util.tmpfile())
         local buf2 = api.nvim_get_current_buf()
         api.nvim_buf_set_lines(buf1, 0, -1, true, { "mods" })
@@ -48,25 +48,25 @@ describe("nvim_buf_call()", function()
             )
 
             api.nvim_buf_call(buf1, function()
-                vim.cmd("silent write")
+                vim.cmd "silent write"
             end)
 
             api.nvim_buf_call(buf2, function()
-                vim.cmd("silent write")
+                vim.cmd "silent write"
             end)
         end
 
-        assert.equals(0, #vim.fn.getbufinfo({ bufmodified = true }))
+        assert.equals(0, #vim.fn.getbufinfo { bufmodified = true })
     end)
 
     it("shouldn't trigger autocmds", function()
         util.silent_edit(util.tmpfile())
         local buf = api.nvim_get_current_buf()
-        vim.cmd("silent tabnew")
-        local a = util.autocmd({ "BufEnter", "BufLeave" })
+        vim.cmd "silent tabnew"
+        local a = util.autocmd { "BufEnter", "BufLeave" }
 
         api.nvim_buf_call(buf, function()
-            vim.cmd("silent write")
+            vim.cmd "silent write"
         end)
 
         util.await_schedule()

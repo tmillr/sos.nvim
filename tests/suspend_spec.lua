@@ -1,6 +1,6 @@
 local api = vim.api
 local sleep = vim.loop.sleep
-local util = require("sos._test.util")
+local util = require "sos._test.util"
 
 describe("test harness", function()
     it("can suspend and resume", function()
@@ -114,7 +114,7 @@ describe("neovim by default", function()
     end)
 
     it("doesn't automatically check file times upon leaving term", function()
-        local nvim = util.start_nvim({})
+        local nvim = util.start_nvim {}
         local tmp = vim.fn.tempname()
         assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
         nvim:set_option("autoread", true)
@@ -152,16 +152,16 @@ end)
 
 describe("sos.nvim", function()
     it("should automatically check file times on resume", function()
-        local nvim = util.start_nvim({
+        local nvim = util.start_nvim {
             xargs = {
                 "-u",
                 "tests/min_init.lua",
                 "-c",
                 [[call v:lua.require'sos'.setup(#{ enabled: v:true })]],
             },
-        })
+        }
 
-        local tmp = util.tmpfile("old")
+        local tmp = util.tmpfile "old"
         nvim:set_option("autoread", true)
         nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })
         sleep(500)
@@ -175,16 +175,16 @@ describe("sos.nvim", function()
     end)
 
     it("should automatically check file times upon leaving term", function()
-        local nvim = util.start_nvim({
+        local nvim = util.start_nvim {
             xargs = {
                 "-u",
                 "tests/min_init.lua",
                 "-c",
                 [[call v:lua.require'sos'.setup(#{ enabled: v:true })]],
             },
-        })
+        }
 
-        local tmp = util.tmpfile("old")
+        local tmp = util.tmpfile "old"
         nvim:set_option("autoread", true)
 
         nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })

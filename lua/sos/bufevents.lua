@@ -173,9 +173,7 @@ function MultiBufObserver:new(cfg, timer)
                     -- not be able to become modified, so this event should
                     -- never fire for unloaded bufs.
                     if not api.nvim_buf_is_loaded(buf) then
-                        errmsg(
-                            "[sos.nvim]: unexpected BufModifiedSet event on unloaded buffer"
-                        )
+                        errmsg "[sos.nvim]: unexpected BufModifiedSet event on unloaded buffer"
                         return
                     end
 

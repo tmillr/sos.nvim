@@ -36,27 +36,27 @@ local function Commands(parent, ret)
     return ret
 end
 
-return Commands({
+return Commands {
     SosEnable = {
         desc = "Enable sos autosaver",
         action = function()
-            require("sos").setup({ enabled = true })
+            require("sos").setup { enabled = true }
         end,
     },
 
     SosDisable = {
         desc = "Disable sos autosaver",
         action = function()
-            require("sos").setup({ enabled = false })
+            require("sos").setup { enabled = false }
         end,
     },
 
     SosToggle = {
         desc = "Toggle sos autosaver",
         action = function()
-            require("sos").setup({
+            require("sos").setup {
                 enabled = not require("sos.config").enabled,
-            })
+            }
         end,
     },
-})
+}

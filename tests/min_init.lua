@@ -10,14 +10,14 @@ xpcall(function()
     vim.o.shortmessage = "FWI"
     vim.o.showmode = false
     vim.o.showcmd = false
-    vim.opt.rtp:append(vim.fn.expand("<sfile>:h:h"))
+    vim.opt.rtp:append(vim.fn.expand "<sfile>:h:h")
     -- vim.cmd "runtime! plugin/**/*.vim"
     -- vim.cmd "runtime! plugin/**/*.lua"
 
     local plenary = vim.env.PLENARY
 
     if not plenary then
-        for _, val in ipairs({ "PATH", "DIR" }) do
+        for _, val in ipairs { "PATH", "DIR" } do
             plenary = vim.env["PLENARY" .. val] or vim.env["PLENARY_" .. val]
             if plenary then break end
         end
@@ -25,10 +25,10 @@ xpcall(function()
 
     if not plenary then
         local searchpath = {}
-        table.insert(searchpath, vim.fn.stdpath("data"))
-        table.insert(searchpath, vim.fn.stdpath("config"))
-        table.insert(searchpath, vim.fn.expand("~") .. "/.luarocks")
-        table.insert(searchpath, vim.fn.stdpath("data_dirs"))
+        table.insert(searchpath, vim.fn.stdpath "data")
+        table.insert(searchpath, vim.fn.stdpath "config")
+        table.insert(searchpath, vim.fn.expand "~" .. "/.luarocks")
+        table.insert(searchpath, vim.fn.stdpath "data_dirs")
         searchpath = vim.tbl_filter(function(v)
             return vim.fn.getftype(v) == "dir"
         end, vim.tbl_flatten(searchpath))
@@ -62,11 +62,11 @@ xpcall(function()
 
     vim.opt.rtp:append(plenary)
 
-    for _, ext in ipairs({ "vim", "lua" }) do
+    for _, ext in ipairs { "vim", "lua" } do
         vim.cmd("runtime! plugin/plenary." .. ext)
         vim.cmd("runtime! plugin/sos." .. ext)
     end
 end, function(e)
     api.nvim_chan_send(vim.v.stderr, "\027[31mError: " .. e .. "\027[0m\n")
-    vim.cmd("cq")
+    vim.cmd "cq"
 end)

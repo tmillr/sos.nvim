@@ -50,7 +50,7 @@ function M.setup_plugin(...)
     if select("#", ...) > 0 then
         require("sos").setup(...)
     else
-        require("sos").setup({ enabled = true })
+        require("sos").setup { enabled = true }
     end
     M.await_vim_enter()
 end
@@ -202,7 +202,7 @@ end
 ---@param sig string
 ---@return nil
 function M.kill(pid, sig)
-    vim.fn.system({ "kill", "-s", sig, pid })
+    vim.fn.system { "kill", "-s", sig, pid }
 
     assert(
         vim.v.shell_error == 0,
@@ -295,7 +295,7 @@ function M.start_nvim(opts)
     end
 
     function self:suspend()
-        assert(self:input("<C-Z>") > 0)
+        assert(self:input "<C-Z>" > 0)
     end
 
     function self:cont()
@@ -320,10 +320,7 @@ function M.start_nvim(opts)
         end,
     })
 
-    assert(
-        self:eval("v:vim_did_enter") == 1,
-        "ERROR: vim has not entered yet"
-    )
+    assert(self:eval "v:vim_did_enter" == 1, "ERROR: vim has not entered yet")
 
     return self
 end

@@ -1,14 +1,14 @@
 local api = vim.api
 local co = coroutine
-local util = require("sos._test.util")
+local util = require "sos._test.util"
 
 describe("disabling the plugin", function()
     it("should stop the timer and not trigger save", function()
-        util.setup_plugin({
+        util.setup_plugin {
             enable = true,
             timeout = 1000,
             save_on_cmd = "all",
-        })
+        }
         local timer = __sos_autosaver__.timer
         util.silent_edit(util.tmpfile())
         api.nvim_buf_set_lines(0, 0, -1, true, { "changes" })

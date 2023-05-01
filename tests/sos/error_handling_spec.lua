@@ -1,5 +1,5 @@
 local api = vim.api
-local util = require("sos._test.util")
+local util = require "sos._test.util"
 
 describe("while writing all modified bufs", function()
     before_each(function()
@@ -7,7 +7,7 @@ describe("while writing all modified bufs", function()
         vim.o.aw = false
         vim.o.awa = false
         vim.o.confirm = false
-        vim.cmd("silent %bw!")
+        vim.cmd "silent %bw!"
     end)
 
     it("errors are caught (and further bufs may be written)", function()
@@ -21,7 +21,7 @@ describe("while writing all modified bufs", function()
         vim.bo.bh = "hide"
         util.write_file(tmp)
 
-        util.silent_edit(util.tmpfile(""))
+        util.silent_edit(util.tmpfile "")
         table.insert(bufs, api.nvim_get_current_buf())
         vim.bo.bh = "hide"
 
@@ -56,10 +56,10 @@ describe("while writing all modified bufs", function()
         )
 
         -- Assert that there was an error
-        assert(vim.v.errmsg:find("sos.nvim"))
+        assert(vim.v.errmsg:find "sos.nvim")
 
         assert(
-            vim.v.errmsg:find("[Vv]im%s*:%s*[Ee]13%s*:"),
+            vim.v.errmsg:find "[Vv]im%s*:%s*[Ee]13%s*:",
             "got the wrong error, expected error E13"
         )
 
