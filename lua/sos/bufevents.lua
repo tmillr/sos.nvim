@@ -116,6 +116,7 @@ function MultiBufObserver:new(cfg, timer)
     ---Destroy this observer
     ---@return nil
     function instance:destroy()
+        self.timer:stop()
         did_destroy = true
 
         for _, id in ipairs(self.autocmds) do
