@@ -1,5 +1,5 @@
 local api = vim.api
-local t = require "sos._test"
+local t = require "sos._test.util"
 local CR = api.nvim_replace_termcodes("<CR>", true, false, true)
 local ESC = api.nvim_replace_termcodes("<Esc>", true, false, true)
 local state
@@ -45,8 +45,6 @@ local function create_test_fn(opts)
 end
 
 describe("save on cmd", function()
-    local tmp
-    -- vim.cmd("SosEnable")
     require("sos").setup { enabled = true, timeout = 600000 }
 
     -- Cmdlines which should trigger a save prior to executing
@@ -56,16 +54,11 @@ describe("save on cmd", function()
     before_each(function()
         vim.cmd "bw!"
         state = {}
-        tmp = vim.fn.tempname() .. ".lua"
-        vim.cmd.edit(tmp)
-        vim.cmd.write()
+        t.silent_edit(t.tmpfile "" .. ".lua")
         api.nvim_buf_set_lines(0, 0, -1, true, {})
+        assert.is_true(vim.o.mod)
         -- Ensure that we're in normal mode
         api.nvim_feedkeys(ESC .. ESC, "ntx", false)
-    end)
-
-    after_each(function()
-        vim.fn.delete(tmp)
     end)
 
     it("wait for VimEnter", function()
@@ -86,7 +79,7 @@ describe("save on cmd", function()
 
     for _, cmdline in ipairs(should_save) do
         it(
-            string.format("should save on: %s<CR>", cmdline),
+            ("should save on: %s<CR>"):format(cmdline),
             create_test_fn {
                 cmdline = cmdline,
                 abort_cmdline = false,
@@ -99,10 +92,7 @@ describe("save on cmd", function()
 
     for _, cmdline in ipairs(should_save) do
         it(
-            string.format(
-                "shouldn't save if cmdline aborted: %s<Esc>",
-                cmdline
-            ),
+            ("shouldn't save if cmdline aborted: %s<Esc>"):format(cmdline),
             create_test_fn {
                 cmdline = cmdline,
                 abort_cmdline = true,
@@ -114,7 +104,7 @@ describe("save on cmd", function()
 
     for _, cmdline in ipairs(shouldnt_save) do
         it(
-            string.format("shouldn't save on: %s<CR>", cmdline),
+            ("shouldn't save on: %s<CR>"):format(cmdline),
             create_test_fn {
                 cmdline = cmdline,
                 abort_cmdline = false,
