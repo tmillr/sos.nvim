@@ -16,7 +16,7 @@ function M.refresh(cfg)
     api.nvim_create_augroup(augroup, { clear = true })
     if not cfg.enabled then return end
 
-    api.nvim_create_autocmd({ "VimResume", "TermLeave" }, {
+    api.nvim_create_autocmd({ "UIEnter", "TermLeave" }, {
         group = augroup,
         pattern = "*",
         desc = "Check file times (i.e. check if files were modified outside vim) (triggers 'autoread' and/or prompts user for further action if changes are detected)",

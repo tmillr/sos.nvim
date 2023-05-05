@@ -265,6 +265,7 @@ function M.start_nvim(opts)
 
     do
         local ok
+        sleep(200)
 
         for _ = 1, 4 do
             ok, chan = pcall(function()

@@ -2,46 +2,65 @@ local api = vim.api
 local sleep = vim.loop.sleep
 local util = require "sos._test.util"
 
+local got_VimSuspend_after_resuming
+local got_VimResume_before_resuming
+
 describe("test harness", function()
     it("can suspend and resume", function()
-        local nvim = util.start_nvim()
-        local got_suspend = util.tmpfile()
-        local got_resume = util.tmpfile()
-        local res = {}
+        util.with_nvim(function(nvim)
+            local got_suspend = util.tmpfile()
+            local got_resume = util.tmpfile()
+            local res = {}
 
-        nvim:create_autocmd("VimSuspend", {
-            once = true,
-            nested = false,
-            command = ("lua vim.fn.writefile({}, [[%s]])"):format(
-                got_suspend
-            ),
-        })
+            nvim:create_autocmd("VimSuspend", {
+                once = true,
+                nested = false,
+                command = ("lua vim.fn.writefile({}, [[%s]])"):format(
+                    got_suspend
+                ),
+            })
 
-        nvim:create_autocmd("VimResume", {
-            once = true,
-            nested = false,
-            command = ("lua vim.fn.writefile({}, [[%s]])"):format(got_resume),
-        })
+            nvim:create_autocmd("VimResume", {
+                once = true,
+                nested = false,
+                command = ("lua vim.fn.writefile({}, [[%s]])"):format(
+                    got_resume
+                ),
+            })
 
-        nvim:suspend()
-        sleep(500)
-        res.got_VimSuspend = util.file_exists(got_suspend)
+            nvim:suspend()
+            sleep(500)
+            res.got_VimSuspend = util.file_exists(got_suspend)
+            got_VimResume_before_resuming = util.file_exists(got_resume)
 
-        -- for extra confirmation of proc state, but doesn't seem to work
-        -- local out = vim.fn.system { "ps", "-p", pid, "-o", "state=" }
-        -- assert(out:find "^T", "ps output: " .. out)
+            -- for extra confirmation of proc state, but doesn't seem to work
+            -- local out = vim.fn.system { "ps", "-p", pid, "-o", "state=" }
+            -- assert(out:find "^T", "ps output: " .. out)
 
-        nvim:cont()
-        sleep(500)
-        res.got_VimResume = util.file_exists(got_resume)
-        res.got_VimSuspend_after_resuming = not res.got_VimSuspend
-            and util.file_exists(got_suspend)
+            nvim:cont()
+            sleep(500)
+            res.got_VimResume = util.file_exists(got_resume)
+            got_VimSuspend_after_resuming = not res.got_VimSuspend
+                and util.file_exists(got_suspend)
 
-        assert.are.same({
-            got_VimSuspend = true,
-            got_VimResume = true,
-            got_VimSuspend_after_resuming = false,
-        }, res)
+            assert.are.same({
+                got_VimSuspend = true,
+                got_VimResume = true,
+            }, res)
+        end)
+    end)
+end)
+
+describe("VimSuspend and VimResume", function()
+    it("fire at the correct and incorrect time, respectively", function()
+        assert.is.False(
+            got_VimSuspend_after_resuming,
+            "incorrectly got VimSuspend after resuming, expected before"
+        )
+        assert.is.True(
+            got_VimResume_before_resuming,
+            "correctly got VimResume after resuming, expected before"
+        )
     end)
 end)
 
