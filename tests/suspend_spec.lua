@@ -114,13 +114,13 @@ describe("neovim by default", function()
     it("doesn't do `:checktime` nor autoread on resume", function()
         local nvim = util.start_nvim()
         local tmp = vim.fn.tempname()
-        assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "old" }, tmp, "bs") == 0)
         nvim:set_option("autoread", true)
         nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })
         sleep(500)
         nvim:suspend()
         sleep(500)
-        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "bs") == 0)
         sleep(500)
         nvim:cont()
         sleep(500)
@@ -136,7 +136,7 @@ describe("neovim by default", function()
     it("doesn't automatically check file times upon leaving term", function()
         local nvim = util.start_nvim {}
         local tmp = vim.fn.tempname()
-        assert(vim.fn.writefile({ "old" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "old" }, tmp, "bs") == 0)
         nvim:set_option("autoread", true)
 
         nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })
@@ -151,7 +151,7 @@ describe("neovim by default", function()
         nvim:cmd({ cmd = "startinsert" }, { output = false })
 
         -- modify file
-        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "bs") == 0)
         sleep(500)
 
         -- visit different tab thereby leaving term
@@ -207,7 +207,7 @@ describe("sos.nvim", function()
         sleep(500)
         nvim:suspend()
         sleep(500)
-        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "bs") == 0)
         sleep(500)
         nvim:cont()
         sleep(500)
@@ -239,7 +239,7 @@ describe("sos.nvim", function()
         nvim:cmd({ cmd = "startinsert" }, { output = false })
 
         -- modify file
-        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "bs") == 0)
         sleep(500)
 
         -- visit different tab thereby leaving term

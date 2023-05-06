@@ -144,7 +144,7 @@ function M.tmpfile(content)
             vim.fn.writefile(
                 type(content) == "table" and content or { content },
                 tmp,
-                "b"
+                "bs"
             ) == 0,
             "Error: file write failed"
         )
