@@ -15,7 +15,7 @@ describe("test harness", function()
             nvim:create_autocmd("VimSuspend", {
                 once = true,
                 nested = false,
-                command = ("lua vim.fn.writefile({}, [[%s]])"):format(
+                command = ("lua vim.fn.writefile({}, %q)"):format(
                     got_suspend
                 ),
             })
@@ -23,9 +23,7 @@ describe("test harness", function()
             nvim:create_autocmd("VimResume", {
                 once = true,
                 nested = false,
-                command = ("lua vim.fn.writefile({}, [[%s]])"):format(
-                    got_resume
-                ),
+                command = ("lua vim.fn.writefile({}, %q)"):format(got_resume),
             })
 
             nvim:suspend()
@@ -122,13 +120,16 @@ describe("neovim by default", function()
         sleep(500)
         nvim:suspend()
         sleep(500)
-        assert(vim.fn.writefile({ "new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
         sleep(500)
         nvim:cont()
         sleep(500)
         assert(table.concat(nvim:buf_get_lines(0, 0, -1, true), "") == "old")
         nvim:cmd({ cmd = "checktime" }, { output = false })
-        assert(table.concat(nvim:buf_get_lines(0, 0, -1, true), "") == "new")
+        assert(
+            table.concat(nvim:buf_get_lines(0, 0, -1, true), "")
+                == "new new new"
+        )
         vim.fn.delete(tmp)
     end)
 
@@ -150,7 +151,7 @@ describe("neovim by default", function()
         nvim:cmd({ cmd = "startinsert" }, { output = false })
 
         -- modify file
-        assert(vim.fn.writefile({ "new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
         sleep(500)
 
         -- visit different tab thereby leaving term
@@ -161,6 +162,26 @@ describe("neovim by default", function()
         )
 
         vim.fn.delete(tmp)
+    end)
+
+    it("fires UIEnter on resume", function()
+        util.with_nvim(function(nvim)
+            local got_UIEnter = util.tmpfile()
+
+            nvim:create_autocmd("UIEnter", {
+                once = true,
+                nested = false,
+                command = ("lua vim.fn.writefile({}, %q)"):format(
+                    got_UIEnter
+                ),
+            })
+
+            nvim:suspend()
+            sleep(500)
+            nvim:cont()
+            sleep(500)
+            assert.is.True(util.file_exists(got_UIEnter))
+        end)
     end)
 end)
 
@@ -186,11 +207,11 @@ describe("sos.nvim", function()
         sleep(500)
         nvim:suspend()
         sleep(500)
-        assert(vim.fn.writefile({ "new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
         sleep(500)
         nvim:cont()
         sleep(500)
-        assert.are.same({ "new" }, nvim:buf_get_lines(0, 0, -1, true))
+        assert.are.same({ "new new new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
 
     it("should automatically check file times upon leaving term", function()
@@ -218,11 +239,11 @@ describe("sos.nvim", function()
         nvim:cmd({ cmd = "startinsert" }, { output = false })
 
         -- modify file
-        assert(vim.fn.writefile({ "new" }, tmp, "b") == 0)
+        assert(vim.fn.writefile({ "new new new" }, tmp, "b") == 0)
         sleep(500)
 
         -- visit different tab thereby leaving term
         nvim:set_current_tabpage(tab) -- trigger sos to check file times (which triggers autoread)
-        assert.are.same({ "new" }, nvim:buf_get_lines(0, 0, -1, true))
+        assert.are.same({ "new new new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
 end)
