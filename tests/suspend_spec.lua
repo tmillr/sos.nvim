@@ -202,8 +202,9 @@ describe("sos.nvim", function()
         }
 
         local tmp = util.tmpfile "old"
+        print("tmp:", tmp)
         nvim:set_option("autoread", true)
-        nvim:cmd({ cmd = "edit", args = { tmp } }, { output = false })
+        nvim:silent_edit(tmp)
         sleep(500)
         nvim:suspend()
         sleep(500)
