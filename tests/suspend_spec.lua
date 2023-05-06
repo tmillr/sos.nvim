@@ -212,8 +212,9 @@ describe("sos.nvim", function()
         sleep(500)
         nvim:cont()
         sleep(500)
-        vim.print { mode = api.nvim_get_mode() }
+        vim.print { mode = nvim:get_mode() }
         vim.cmd.checktime()
+        vim.print { mode = nvim:get_mode() }
         assert.are.same({ "new new new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
 
