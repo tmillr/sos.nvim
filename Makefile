@@ -2,7 +2,7 @@
 #     DIR:         path to dir or file to test (default: all of target's files/tests)
 #     SEQ/SYNC:    if set, run tests sequentially (default: true for benchmarks, otherwise false)
 
-.PHONY: test perf
+.PHONY: test t fmt format perf bench
 
 # because ifdef considers empty vars unset...
 ifneq "$(origin SEQ)" "undefined"
@@ -14,6 +14,7 @@ else
 endif
 
 define run-test
+    nvim -v
     nvim \
       --noplugin \
       -u tests/min_init.lua \
@@ -27,6 +28,9 @@ endef
 t test: DIR ::= $(or $(DIR),tests)
 t test:
 	@$(run-test)
+
+fmt format:
+	stylua .
 
 perf bench: DIR ::= $(or $(DIR),perf)
 perf bench: override SEQ ::= true
