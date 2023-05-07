@@ -246,4 +246,31 @@ describe("sos.nvim", function()
         nvim:set_current_tabpage(tab) -- trigger sos to check file times (which triggers autoread)
         assert.are.same({ "new new new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
+
+    it("should save all bufs on suspend", function()
+        util.with_nvim({
+            xargs = {
+                "-u",
+                "tests/min_init.lua",
+            },
+        }, function(nvim)
+            local tmp_a = util.tmpfile()
+            local tmp_b = util.tmpfile()
+            nvim:set_option("awa", false)
+            nvim:set_option("aw", false)
+            nvim:set_option("hidden", true)
+            nvim:silent_edit(tmp_a)
+            nvim:buf_set_lines(0, 0, -1, true, { "changes" })
+            nvim:silent_edit(tmp_b)
+            nvim:buf_set_lines(0, 0, -1, true, { "changes" })
+            nvim:exec_lua(function()
+                return require("sos").setup { enabled = true, timeout = 9e6 }
+            end)
+            sleep(200)
+            nvim:suspend()
+            sleep(200)
+            assert.is.True(util.file_exists(tmp_a))
+            assert.is.True(util.file_exists(tmp_b))
+        end)
+    end)
 end)

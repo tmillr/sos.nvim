@@ -307,6 +307,17 @@ function M.start_nvim(opts)
         vim.fn.jobstop(jobid)
     end
 
+    function self:exec_lua(f, args)
+        if type(f) == "string" then
+            return self:req("nvim_exec_lua", f, args or {})
+        end
+        return self:req(
+            "nvim_exec_lua",
+            ("return assert(loadstring(%q))(...)"):format(string.dump(f)),
+            args or {}
+        )
+    end
+
     setmetatable(self, {
         __index = function(_, key)
             return M[key]

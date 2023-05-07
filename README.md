@@ -98,7 +98,8 @@ require("sos").setup {
     -- open an older version of a file in another application/Neovim instance,
     -- although in that case you're probably better off disabling autosaving
     -- altogether (or keep it enabled but utilize a VCS to get the version you
-    -- need - that is, if you commit frequently enough).
+    -- need - that is, if you commit frequently enough). This option also enables
+    -- saving on suspend.
     save_on_focuslost = true,
 
     -- Predicate fn which receives a buf number and should return true if it

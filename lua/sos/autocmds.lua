@@ -60,6 +60,17 @@ function M.refresh(cfg)
             group = augroup,
             pattern = "*",
             desc = "Save all buffers when Neovim loses focus",
+            nested = true,
+            callback = function(_info)
+                cfg.on_timer()
+            end,
+        })
+
+        api.nvim_create_autocmd("VimSuspend", {
+            group = augroup,
+            pattern = "*",
+            desc = "Save all buffers when Neovim is suspended",
+            nested = true,
             callback = function(_info)
                 cfg.on_timer()
             end,
