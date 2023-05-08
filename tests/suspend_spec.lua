@@ -214,7 +214,7 @@ describe("sos.nvim", function()
         sleep(500)
         vim.print { mode = nvim:get_mode(), bufinfo = vim.fn.getbufinfo "%" }
         print("name:", nvim:buf_get_name(0))
-        -- vim.cmd.checktime()
+        vim.cmd.checktime()
         vim.print { mode = nvim:get_mode(), bufinfo = vim.fn.getbufinfo "%" }
         assert.are.same({ "new new new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
