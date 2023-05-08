@@ -211,7 +211,7 @@ describe("sos.nvim", function()
         assert(vim.fn.writefile({ "new new new" }, tmp, "bs") == 0)
         sleep(500)
         nvim:cont()
-        nvim:cmd({ cmd = "checktime" }, { output = false })        
+        -- nvim:cmd({ cmd = "checktime" }, { output = false })        
         sleep(500)
         vim.print { mode = nvim:get_mode(), bufinfo = vim.fn.getbufinfo "%" }
         print("name:", nvim:buf_get_name(0))
