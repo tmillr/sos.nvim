@@ -22,7 +22,7 @@ function M.refresh(cfg)
         desc = "Check file times (i.e. check if files were modified outside vim) (triggers 'autoread' and/or prompts user for further action if changes are detected)",
         once = false,
         nested = true,
-        command = "checktime",
+        command = "checktime | w UIEnter",
     })
 
     api.nvim_create_autocmd("VimLeavePre", {
