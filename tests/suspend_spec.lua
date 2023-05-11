@@ -192,6 +192,7 @@ end)
 
 describe("sos.nvim", function()
     it("should automatically check file times on resume", function()
+        vim.fn.delete("UIEnter")
         local nvim = util.start_nvim {
             xargs = {
                 "-u",
@@ -216,6 +217,7 @@ describe("sos.nvim", function()
         vim.print { mode = nvim:get_mode(), bufinfo = vim.fn.getbufinfo "%" }
         print("name:", nvim:buf_get_name(0))
         vim.print { mode = nvim:get_mode(), bufinfo = vim.fn.getbufinfo "%" }
+        assert.True(util.file_exists("UIEnter"), "did not get UIEnter")
         assert.are.same({ "new new new" }, nvim:buf_get_lines(0, 0, -1, true))
     end)
 
