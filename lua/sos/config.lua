@@ -28,7 +28,7 @@ local defaults = {
     on_timer = require("sos.impl").on_timer,
 }
 
----Get an arbitrarily nest value from a table
+---Get an arbitrarily-nested value from a table
 ---@param tbl table table to get the value from
 ---@param path unknown[] array of keys to follow
 ---@return unknown? value
@@ -41,7 +41,7 @@ local function tbl_keypath_get(tbl, path)
     return tbl
 end
 
----Set an arbitrarily nest value on a table
+---Set an arbitrarily-nested value on a table
 ---@param tbl table
 ---@param path unknown[]
 ---@param val unknown
