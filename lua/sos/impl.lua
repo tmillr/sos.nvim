@@ -77,7 +77,26 @@ end
 
 ---@param buf integer
 ---@nodiscard
----@return boolean, string?
+---@return boolean # boolean indicating whether `buf` is acwrite
+local function is_acwrite(buf)
+    -- This should detect most, if not all, acwrite bufs, although it will
+    -- fail if a buf has both a non acwrite buftype and a name that does not
+    -- match the pattern.
+    return vim.bo[buf].bt == "acwrite"
+        -- See https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax
+        -- (backslashes are included just in case for Windows)
+        or api.nvim_buf_get_name(buf):find [===[^%a[%-%w%+%.]+:[/\][/\]]===]
+
+    -- NOTE:
+    -- `nvim_get_autocmds` would be the most surefire way to detect an acwrite
+    -- buf, but wouldn't be trivial to accomplish as you'd need to check both
+    -- buf-local autocmds (easy) and global pattern-based ones (difficult). It
+    -- would also be more computationally-expensive. Also see :h glob2regpat()
+end
+
+---@param buf integer
+---@nodiscard
+---@return boolean success, string? error
 function M.write_buf_if_needed(buf)
     if
         vim.bo[buf].mod
@@ -88,13 +107,15 @@ function M.write_buf_if_needed(buf)
     then
         local name = api.nvim_buf_get_name(buf)
 
-        -- Cannot write to an empty filename
-        if name == "" then return true end
-        local buftype = vim.bo[buf].bt
+        if is_acwrite(buf) then
+            if require("sos.config").acwrite.should_save(buf) then
+                return write_buf(buf)
+            end
+            return true
+        else
+            -- Cannot write to an empty filename
+            if name == "" then return true end
 
-        if buftype == "acwrite" then
-            return write_buf(buf)
-        elseif buftype == "" then
             -- TODO: Make async
             local stat, _errmsg, _errname = uv.fs_stat(name)
 
