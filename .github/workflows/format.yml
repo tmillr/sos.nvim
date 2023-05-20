@@ -1,0 +1,24 @@
+name: Format
+
+on:
+  push:
+    paths:
+      - '**.lua'
+  pull_request:
+    paths:
+      - '**.lua'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: JohnnyMorganz/stylua-action@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check .

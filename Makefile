@@ -2,7 +2,7 @@
 #     DIR:         path to dir or file to test (default: all of target's files/tests)
 #     SEQ/SYNC:    if set, run tests sequentially (default: true for benchmarks, otherwise false)
 
-.PHONY: test t fmt format perf bench
+.PHONY: test t fmt format perf bench checkfmt
 
 # because ifdef considers empty vars unset...
 ifneq "$(origin SEQ)" "undefined"
@@ -31,6 +31,9 @@ t test:
 
 fmt format:
 	stylua .
+
+checkfmt:
+	stylua -c .
 
 perf bench: DIR ::= $(or $(DIR),perf)
 perf bench: override SEQ ::= true
