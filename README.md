@@ -1,4 +1,4 @@
-# 🆘 sos.nvim 🆘
+# 🆘 sos.nvim 🆘 <a href="https://github.com/tmillr/sos.nvim/releases/latest"><img style="padding-left: 4px; padding-top: 20px;" align="right" alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/tmillr/sos.nvim?label=&logo=semver&sort=semver&color=%2328A745&labelColor=%23384047&logoColor=%23959DA5"/></a><a href="https://github.com/tmillr/sos.nvim/actions/workflows/format.yml"><img style="padding-left: 4px; padding-top: 20px;" align="right" alt="Format" src="https://github.com/tmillr/sos.nvim/actions/workflows/format.yml/badge.svg"/></a><a href="https://github.com/tmillr/sos.nvim/actions/workflows/ci.yml"><img style="padding-left: 0px; padding-top: 20px;" align="right" alt="CI" src="https://github.com/tmillr/sos.nvim/actions/workflows/ci.yml/badge.svg"/></a>
 
 Never manually save/write a buffer again!
 
@@ -172,3 +172,4 @@ In the meantime, if you are having issues due to a format-on-save setup and unti
 [prs]: /../../pulls
 [q&a]: /../../discussions/categories/q-a
 [undotree]: ../../../../mbbill/undotree
+[^1]: djdjdjdj
