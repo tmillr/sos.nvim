@@ -59,29 +59,13 @@ local MultiBufObserver = require "sos.bufevents"
 local autocmds = require "sos.autocmds"
 local errmsg = require("sos.util").errmsg
 local api = vim.api
-local loop = vim.loop
+local uv = vim.loop
 local augroup_init = "sos-autosaver/init"
 
 local function manage_vim_opts(config, plug_enabled)
-    local aw = config.autowrite
-
-    if aw == "all" then
-        vim.o.autowrite = false
-        vim.o.autowriteall = plug_enabled
-    elseif aw == true then
-        vim.o.autowriteall = false
-        vim.o.autowrite = plug_enabled
-    elseif aw ~= false then
-        errmsg(
-            "invalid value `"
-                .. vim.inspect(aw)
-                .. '` for option `autowrite`: expected "all" | true | false'
-        )
-        return
+    if plug_enabled then
+        vim.o.autowrite, vim.o.autowriteall = false, false
     end
-
-    -- If we reached here then cfg.autowrite was set to false, so don't touch
-    -- it then.
 end
 
 local function start(verbose)
@@ -122,8 +106,8 @@ end
 --    with (potentially) different behavior attached to different buffers
 --    (e.g. the plugin is reloaded/re-sourced during development).
 if __sos_autosaver__ == nil then
-    local t = loop.new_timer()
-    loop.unref(t)
+    local t = uv.new_timer()
+    uv.unref(t)
     __sos_autosaver__ = {
         timer = t,
         buf_observer = nil,
@@ -170,28 +154,16 @@ end
 ---@param reset? boolean Reset all options to their defaults before applying `opts`
 ---@return nil
 function M.setup(opts, reset)
+    -- just in case plugin/sos.* wasn't sourced by vim (e.g. plugin added to
+    -- vim after startup)
+    require "sos.plugin"
+
     vim.validate { opts = { opts, "table", true } }
 
     if reset then
-        for _, k in ipairs(vim.tbl_keys(cfg)) do
-            if rawget(cfg, k) ~= nil then rawset(cfg, k, nil) end
-        end
-    end
-
-    if opts then
-        for k, v in pairs(opts) do
-            if cfg[k] == nil then
-                vim.notify(
-                    string.format(
-                        "[sos.nvim]: unrecognized key in options: %s",
-                        k
-                    ),
-                    vim.log.levels.WARN
-                )
-            else
-                cfg[k] = vim.deepcopy(v)
-            end
-        end
+        cfg:_reset()
+    elseif opts then
+        cfg:_apply(opts)
     end
 
     main(true)
