@@ -23,6 +23,12 @@ M.savable_cmdline = vim.regex [=[system\|:lua\|[Jj][Oo][Bb]]=]
 local recognized_buftypes =
     vim.regex [[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]]
 
+---@param val any
+---@return boolean
+local function tobool(val)
+    return val == true or val == 1
+end
+
 ---@param buf integer
 ---@nodiscard
 ---@return boolean
@@ -125,6 +131,14 @@ function M.write_buf_if_needed(buf)
                     end
 
                     -- Parent dir exists but isn't writeable.
+                    return true
+                elseif dir_errname == "ENOENT" then
+                    if tobool(vim.fn.mkdir(dir, "p")) then
+                        return write_buf(buf)
+                    end
+
+                    -- Parent dir doesn't exist, failed to create it (e.g.
+                    -- perms).
                     return true
                 end
             end
