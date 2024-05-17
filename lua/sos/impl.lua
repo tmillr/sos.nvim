@@ -87,7 +87,6 @@ function M.write_buf_if_needed(buf)
         and wanted_buftype(buf)
     then
         local name = api.nvim_buf_get_name(buf)
-
         -- Cannot write to an empty filename
         if name == "" then return true end
         local buftype = vim.bo[buf].bt
@@ -95,15 +94,39 @@ function M.write_buf_if_needed(buf)
         if buftype == "acwrite" then
             return write_buf(buf)
         elseif buftype == "" then
-            -- TODO: Make async
-            local stat, _errmsg, _errname = uv.fs_stat(name)
+            local stat, _errmsg, errname = uv.fs_stat(name)
 
             if stat then
-                -- If file exists, only write if it's a regular file
-                if stat.type == "file" then return write_buf(buf) end
-            else
-                -- TODO: Try stat again on error (or certain errors)?
-                return write_buf(buf)
+                -- File exists: only write if it's writeable and not a dir.
+                if
+                    vim.fn.filewritable(name) == 1
+                    and not stat.type:find "^dir"
+                then
+                    return write_buf(buf)
+                end
+
+                return true
+            elseif errname == "ENOENT" then
+                -- TODO: Try stat again on error (or certain errors, like if
+                -- EINTR is possible to observe in lua)?
+                if name:find "[\\/]$" then
+                    -- Unsure what the user would want here, so just return
+                    -- success and don't write anything.
+                    return true
+                end
+
+                local dir = vim.fn.fnamemodify(name, ":h")
+                local dir_stat, _dir_errmsg, dir_errname = uv.fs_stat(dir)
+
+                if dir_stat then
+                    if vim.fn.filewritable(dir) == 2 then
+                        -- Parent is writeable dir
+                        return write_buf(buf)
+                    end
+
+                    -- Parent dir exists but isn't writeable.
+                    return true
+                end
             end
         end
     end
