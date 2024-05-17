@@ -9,6 +9,13 @@ This plugin is an autosaver for Neovim that automatically saves all of your chan
 - to offer at least some customization via options, as well as the ability to easily enable/disable
 - to be better or more correct than `CursorHold` autosavers and not depend on `CursorHold` if feasible
 
+### Additional Features
+
+- has its own independent timer, distinct from `'updatetime'`, which may be set to any value in ms
+- timer is only started/reset on buffer changes, not cursor movements or other irrelevant events
+- keeps buffers in sync with the filesystem by frequently running `:checktime` in the background for you (e.g. on `CTRL-Z` or suspend, resume, command, etc.)
+- intelligently ignores `'readonly'` and other such unwritable buffers/files (i.e. the writing of files with insufficient permissions must be attempted manually with `:w`)
+
 For any questions, help with setup, or general help, you can try [discussions][q&a]. For issues, bugs, apparent bugs, or feature requests, feel free to [open an issue][issues] or [create a pull request][prs].
 
 ## Installation
