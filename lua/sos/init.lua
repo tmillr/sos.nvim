@@ -54,57 +54,55 @@ TODO: Command/Fn/Opt to enable/disable locally (per buf)
 ---@field stop function
 
 local M = {}
-local cfg = require "sos.config"
-local MultiBufObserver = require "sos.bufevents"
-local autocmds = require "sos.autocmds"
-local errmsg = require("sos.util").errmsg
+local MultiBufObserver = require 'sos.bufevents'
+local autocmds = require 'sos.autocmds'
+local cfg = require 'sos.config'
+local errmsg = require('sos.util').errmsg
 local api = vim.api
 local loop = vim.loop
-local augroup_init = "sos-autosaver/init"
+local augroup_init = 'sos-autosaver/init'
 
 local function manage_vim_opts(config, plug_enabled)
-    local aw = config.autowrite
+  local aw = config.autowrite
 
-    if aw == "all" then
-        vim.o.autowrite = false
-        vim.o.autowriteall = plug_enabled
-    elseif aw == true then
-        vim.o.autowriteall = false
-        vim.o.autowrite = plug_enabled
-    elseif aw ~= false then
-        errmsg(
-            "invalid value `"
-                .. vim.inspect(aw)
-                .. '` for option `autowrite`: expected "all" | true | false'
-        )
-        return
-    end
+  if aw == 'all' then
+    vim.o.autowrite = false
+    vim.o.autowriteall = plug_enabled
+  elseif aw == true then
+    vim.o.autowriteall = false
+    vim.o.autowrite = plug_enabled
+  elseif aw ~= false then
+    errmsg(
+      'invalid value `'
+        .. vim.inspect(aw)
+        .. '` for option `autowrite`: expected "all" | true | false'
+    )
+    return
+  end
 
-    -- If we reached here then cfg.autowrite was set to false, so don't touch
-    -- it then.
+  -- If we reached here then cfg.autowrite was set to false, so don't touch
+  -- it then.
 end
 
 local function start(verbose)
-    manage_vim_opts(cfg, true)
-    autocmds.refresh(cfg)
-    if __sos_autosaver__.buf_observer ~= nil then return end
+  manage_vim_opts(cfg, true)
+  autocmds.refresh(cfg)
+  if __sos_autosaver__.buf_observer ~= nil then return end
 
-    __sos_autosaver__.buf_observer =
-        MultiBufObserver:new(cfg, __sos_autosaver__.timer)
+  __sos_autosaver__.buf_observer =
+    MultiBufObserver:new(cfg, __sos_autosaver__.timer)
 
-    __sos_autosaver__.buf_observer:start()
-    if verbose then vim.notify("[sos.nvim]: enabled", vim.log.levels.INFO) end
+  __sos_autosaver__.buf_observer:start()
+  if verbose then vim.notify('[sos.nvim]: enabled', vim.log.levels.INFO) end
 end
 
 local function stop(verbose)
-    manage_vim_opts(cfg, false)
-    autocmds.clear()
-    if __sos_autosaver__.buf_observer == nil then return end
-    __sos_autosaver__.buf_observer:destroy()
-    __sos_autosaver__.buf_observer = nil
-    if verbose then
-        vim.notify("[sos.nvim]: disabled", vim.log.levels.INFO)
-    end
+  manage_vim_opts(cfg, false)
+  autocmds.clear()
+  if __sos_autosaver__.buf_observer == nil then return end
+  __sos_autosaver__.buf_observer:destroy()
+  __sos_autosaver__.buf_observer = nil
+  if verbose then vim.notify('[sos.nvim]: disabled', vim.log.levels.INFO) end
 end
 
 -- Init the global obj
@@ -122,45 +120,43 @@ end
 --    with (potentially) different behavior attached to different buffers
 --    (e.g. the plugin is reloaded/re-sourced during development).
 if __sos_autosaver__ == nil then
-    local t = loop.new_timer()
-    loop.unref(t)
-    __sos_autosaver__ = {
-        timer = t,
-        buf_observer = nil,
-    }
+  local t = loop.new_timer()
+  loop.unref(t)
+  __sos_autosaver__ = {
+    timer = t,
+    buf_observer = nil,
+  }
 else
-    -- Plugin was reloaded somehow
-    rawset(cfg, "enabled", nil)
-    -- Destroy the old observer
-    stop()
-    -- Cancel potential pending call (if vim hasn't entered yet)
-    api.nvim_create_augroup(augroup_init, { clear = true })
+  -- Plugin was reloaded somehow
+  rawset(cfg, 'enabled', nil)
+  -- Destroy the old observer
+  stop()
+  -- Cancel potential pending call (if vim hasn't entered yet)
+  api.nvim_create_augroup(augroup_init, { clear = true })
 end
 
 ---@param verbose? boolean
 ---@return nil
 local function main(verbose)
-    if vim.v.vim_did_enter == 0 or vim.v.vim_did_enter == false then
-        api.nvim_create_augroup(augroup_init, { clear = true })
+  if vim.v.vim_did_enter == 0 or vim.v.vim_did_enter == false then
+    api.nvim_create_augroup(augroup_init, { clear = true })
 
-        api.nvim_create_autocmd("VimEnter", {
-            group = augroup_init,
-            pattern = "*",
-            desc = "Initialize sos.nvim",
-            once = true,
-            callback = function()
-                main(false)
-            end,
-        })
+    api.nvim_create_autocmd('VimEnter', {
+      group = augroup_init,
+      pattern = '*',
+      desc = 'Initialize sos.nvim',
+      once = true,
+      callback = function() main(false) end,
+    })
 
-        return
-    end
+    return
+  end
 
-    if cfg.enabled then
-        start(verbose)
-    else
-        stop(verbose)
-    end
+  if cfg.enabled then
+    start(verbose)
+  else
+    stop(verbose)
+  end
 end
 
 ---Missing keys in `opts` are left untouched and will continue to use their
@@ -170,31 +166,28 @@ end
 ---@param reset? boolean Reset all options to their defaults before applying `opts`
 ---@return nil
 function M.setup(opts, reset)
-    vim.validate { opts = { opts, "table", true } }
+  vim.validate { opts = { opts, 'table', true } }
 
-    if reset then
-        for _, k in ipairs(vim.tbl_keys(cfg)) do
-            if rawget(cfg, k) ~= nil then rawset(cfg, k, nil) end
-        end
+  if reset then
+    for _, k in ipairs(vim.tbl_keys(cfg)) do
+      if rawget(cfg, k) ~= nil then rawset(cfg, k, nil) end
     end
+  end
 
-    if opts then
-        for k, v in pairs(opts) do
-            if cfg[k] == nil then
-                vim.notify(
-                    string.format(
-                        "[sos.nvim]: unrecognized key in options: %s",
-                        k
-                    ),
-                    vim.log.levels.WARN
-                )
-            else
-                cfg[k] = vim.deepcopy(v)
-            end
-        end
+  if opts then
+    for k, v in pairs(opts) do
+      if cfg[k] == nil then
+        vim.notify(
+          string.format('[sos.nvim]: unrecognized key in options: %s', k),
+          vim.log.levels.WARN
+        )
+      else
+        cfg[k] = vim.deepcopy(v)
+      end
     end
+  end
 
-    main(true)
+  main(true)
 end
 
 return M

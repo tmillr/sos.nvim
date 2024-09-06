@@ -8,14 +8,14 @@
 ---@field should_observe_buf nil | fun(buf: integer): boolean             # Return true to observe/attach to buf.
 ---@field on_timer function                                               # The function to call when the timer fires.
 local defaults = {
-    enabled = true,
-    timeout = 20000,
-    autowrite = true,
-    save_on_cmd = "some",
-    save_on_bufleave = true,
-    save_on_focuslost = true,
-    should_observe_buf = require("sos.impl").should_observe_buf,
-    on_timer = require("sos.impl").on_timer,
+  enabled = true,
+  timeout = 20000,
+  autowrite = true,
+  save_on_cmd = 'some',
+  save_on_bufleave = true,
+  save_on_focuslost = true,
+  should_observe_buf = require('sos.impl').should_observe_buf,
+  on_timer = require('sos.impl').on_timer,
 }
 
 return setmetatable({}, { __index = defaults })

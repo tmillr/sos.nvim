@@ -36,99 +36,90 @@ loaded/reloaded with regular commands like `:edit` (i.e. they are read from the
 filesystem when the session file is sourced).
 --]]
 
-local util = require "sos._test.util"
+local util = require 'sos._test.util'
 
-describe("vim session", function()
-    local tmp, sessfile
+describe('vim session', function()
+  local tmp, sessfile
 
-    before_each(function()
-        tmp = util.tmpfile() .. ".lua"
-        sessfile = util.tmpfile() .. ".vim"
+  before_each(function()
+    tmp = util.tmpfile() .. '.lua'
+    sessfile = util.tmpfile() .. '.vim'
+  end)
+
+  it("doesn't store buf contents (thereby masking fs version)", function()
+    local after_lines
+
+    util.with_nvim(function(nvim)
+      nvim:silent_edit(tmp)
+      nvim:buf_set_lines(0, 0, -1, true, { 'initial content' })
+      nvim:command 'write'
+
+      -- Save session
+      nvim:command('mksession ' .. sessfile)
+
+      -- Do alot more work on the file...session becomes out of sync?
+      nvim:buf_set_lines(0, 0, -1, true, { 'new', 'content', 'and some more' })
+
+      after_lines = nvim:buf_get_lines(0, 0, -1, true)
+
+      -- We save our changes, but forget to update the session. Next
+      -- time we restore the session, the buf(s) will be outdated and not
+      -- reflective of their current state on the fs?
+      nvim:command 'write'
     end)
 
-    it("doesn't store buf contents (thereby masking fs version)", function()
-        local after_lines
+    -- Open new nvim, we restore our session (which we might not realize
+    -- is out-of-sync).
+    util.with_nvim({ xargs = { '-S', sessfile } }, function(nvim)
+      -- nvim:command("SosDisables")
+      assert.is.False(nvim:exec_lua('return vim.bo.modified', {}))
 
-        util.with_nvim(function(nvim)
-            nvim:silent_edit(tmp)
-            nvim:buf_set_lines(0, 0, -1, true, { "initial content" })
-            nvim:command "write"
+      -- NOTE: It actually appears that nvim does not store buf content
+      -- in session files. Upon session load, buf content is pulled from
+      -- the fs instead.
+      -- assert.same(before_lines, nvim:buf_get_lines(0, 0, -1, true))
+      assert.same(after_lines, nvim:buf_get_lines(0, 0, -1, true))
+      nvim:silent_edit(tmp)
+      assert.same(after_lines, nvim:buf_get_lines(0, 0, -1, true))
+    end)
+  end)
 
-            -- Save session
-            nvim:command("mksession " .. sessfile)
-
-            -- Do alot more work on the file...session becomes out of sync?
-            nvim:buf_set_lines(
-                0,
-                0,
-                -1,
-                true,
-                { "new", "content", "and some more" }
-            )
-
-            after_lines = nvim:buf_get_lines(0, 0, -1, true)
-
-            -- We save our changes, but forget to update the session. Next
-            -- time we restore the session, the buf(s) will be outdated and not
-            -- reflective of their current state on the fs?
-            nvim:command "write"
-        end)
-
-        -- Open new nvim, we restore our session (which we might not realize
-        -- is out-of-sync).
-        util.with_nvim({ xargs = { "-S", sessfile } }, function(nvim)
-            -- nvim:command("SosDisables")
-            assert.is.False(nvim:exec_lua("return vim.bo.modified", {}))
-
-            -- NOTE: It actually appears that nvim does not store buf content
-            -- in session files. Upon session load, buf content is pulled from
-            -- the fs instead.
-            -- assert.same(before_lines, nvim:buf_get_lines(0, 0, -1, true))
-            assert.same(after_lines, nvim:buf_get_lines(0, 0, -1, true))
-            nvim:silent_edit(tmp)
-            assert.same(after_lines, nvim:buf_get_lines(0, 0, -1, true))
-        end)
+  ---A non-empty buf stored in sess should reload as unmodified, empty buf if
+  ---file doesn't exist at session load time.
+  it("doesn't store buf contents (nor create files)", function()
+    util.with_nvim(function(nvim)
+      nvim:silent_edit(tmp)
+      nvim:buf_set_lines(0, 0, -1, true, { 'initial content' })
+      nvim:command 'write'
+      nvim:command('mksession ' .. sessfile)
+      --TODO: what if sess is loaded here after deleting the file?
     end)
 
-    ---A non-empty buf stored in sess should reload as unmodified, empty buf if
-    ---file doesn't exist at session load time.
-    it("doesn't store buf contents (nor create files)", function()
-        util.with_nvim(function(nvim)
-            nvim:silent_edit(tmp)
-            nvim:buf_set_lines(0, 0, -1, true, { "initial content" })
-            nvim:command "write"
-            nvim:command("mksession " .. sessfile)
-            --TODO: what if sess is loaded here after deleting the file?
-        end)
+    assert.equals(0, vim.fn.delete(tmp))
 
-        assert.equals(0, vim.fn.delete(tmp))
+    util.with_nvim({ xargs = { '-S', sessfile } }, function(nvim)
+      assert.is.False(nvim:exec_lua('return vim.bo.modified', {}))
+      assert.is.False(util.file_exists(tmp))
+      assert.is.True(nvim:buf_empty())
+    end)
+  end)
 
-        util.with_nvim({ xargs = { "-S", sessfile } }, function(nvim)
-            assert.is.False(nvim:exec_lua("return vim.bo.modified", {}))
-            assert.is.False(util.file_exists(tmp))
-            assert.is.True(nvim:buf_empty())
-        end)
+  ---Should not try to restore empty buf (which might confuse the user, and
+  ---would overwrite the file with an empty one when saved)
+  it("doesn't store buf contents (or lack thereof)", function()
+    util.with_nvim(function(nvim)
+      -- New buf with filename
+      nvim:silent_edit(tmp)
+      nvim:command('mksession ' .. sessfile)
     end)
 
-    ---Should not try to restore empty buf (which might confuse the user, and
-    ---would overwrite the file with an empty one when saved)
-    it("doesn't store buf contents (or lack thereof)", function()
-        util.with_nvim(function(nvim)
-            -- New buf with filename
-            nvim:silent_edit(tmp)
-            nvim:command("mksession " .. sessfile)
-        end)
+    -- Create file using same filename
+    assert.equals(0, vim.fn.writefile({ 'initial content' }, tmp))
 
-        -- Create file using same filename
-        assert.equals(0, vim.fn.writefile({ "initial content" }, tmp))
-
-        -- Session should simply load the file from fs, not an empty buf
-        util.with_nvim({ xargs = { "-S", sessfile } }, function(nvim)
-            assert.is.False(nvim:exec_lua("return vim.bo.modified", {}))
-            assert.same(
-                { "initial content" },
-                nvim:buf_get_lines(0, 0, -1, true)
-            )
-        end)
+    -- Session should simply load the file from fs, not an empty buf
+    util.with_nvim({ xargs = { '-S', sessfile } }, function(nvim)
+      assert.is.False(nvim:exec_lua('return vim.bo.modified', {}))
+      assert.same({ 'initial content' }, nvim:buf_get_lines(0, 0, -1, true))
     end)
+  end)
 end)
