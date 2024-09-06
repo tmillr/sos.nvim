@@ -7,7 +7,7 @@ xpcall(function()
   vim.o.aw = false
   vim.o.awa = false
   vim.o.more = false
-  vim.o.shortmessage = 'FWI'
+  vim.o.shortmess = 'FWI'
   vim.o.showmode = false
   vim.o.showcmd = false
   vim.opt.rtp:append(vim.fn.expand '<sfile>:h:h')
