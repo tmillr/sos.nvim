@@ -2,41 +2,49 @@
 -- dirs for each test type (e2e, unit, etc.) so things are better organized,
 -- re-usable fn for testing autoread/checktime
 
-local M = {}
-local api = vim.api
-local uv = vim.loop
-local sleep = uv.sleep
-local co = coroutine
-local tmpfiles
+local M = { assert = require 'sos._test.assert' }
+local api, co, uv = vim.api, coroutine, vim.uv or vim.loop
 
 ---@param schedwrap boolean
 function M.coroutine_resumer(schedwrap)
   local curr_co = co.running()
-
-  if schedwrap then
-    return vim.schedule_wrap(function(...) co.resume(curr_co, ...) end)
-  end
-
-  return function(...) co.resume(curr_co, ...) end
+  local function resume(...) assert(co.resume(curr_co, ...)) end
+  return schedwrap and vim.schedule_wrap(resume) or resume
 end
 
 ---@return nil
 function M.await_schedule()
-  local curr_co = co.running()
-
+  local cur_co = co.running()
+  assert(cur_co, 'not running in coroutine')
   local timeout = M.set_timeout(
     5000,
     function()
-      co.resume(curr_co, false, 'timed out waiting for vim.schedule() callback')
+      assert(
+        co.resume(
+          cur_co,
+          false,
+          'timed out waiting for vim.schedule() callback'
+        )
+      )
     end
   )
 
   vim.schedule(function()
     timeout:stop()
-    co.resume(curr_co, true)
+    co.resume(cur_co, true)
   end)
 
   assert(co.yield())
+end
+
+---Sleep/wait (pause execution) by yielding the current coroutine. In contrast
+---to `vim.wait()` and `uv.sleep()`, this will pause the current lua "thread"
+---only while still allowing nvim to run completely unhindered. Must be called
+---in coroutine context.
+---@param ms integer
+function M.wait(ms)
+  vim.defer_fn(M.coroutine_resumer(false), ms)
+  co.yield()
 end
 
 ---@async
@@ -47,6 +55,7 @@ function M.setup_plugin(...)
   else
     require('sos').setup { enabled = true }
   end
+
   M.await_vim_enter()
 end
 
@@ -74,18 +83,20 @@ function M.bufwritemock(onwrite)
   })
 end
 
+---@return integer bufnr
 ---@return string output
----@overload fun(nvim: table, file?: string): string
----@overload fun(file?: string): string
+---@overload fun(nvim: table, file?: string)
+---@overload fun(file?: string)
 function M.silent_edit(...)
   local external_nvim_or_api, file = M.nvim_recv_or_api(...)
-
-  return external_nvim_or_api.nvim_cmd({
+  local out = external_nvim_or_api.nvim_cmd({
     cmd = 'edit',
     args = { file },
     magic = { file = false, bar = false },
     mods = { silent = true },
   }, { output = true })
+
+  return api.nvim_get_current_buf(), out
 end
 
 ---@param keys string
@@ -107,24 +118,7 @@ end
 ---@param content? string | (string|number)[]
 ---@return string fname
 function M.tmpfile(content)
-  if not tmpfiles then
-    tmpfiles = {}
-
-    api.nvim_create_autocmd('VimLeave', {
-      pattern = '*',
-      desc = 'Cleanup temp files',
-      nested = false,
-      callback = function()
-        for _, f in ipairs(tmpfiles) do
-          vim.fn.delete(f)
-        end
-      end,
-    })
-  end
-
   local tmp = vim.fn.tempname()
-  table.insert(tmpfiles, tmp)
-
   assert(tmp and tmp ~= '', 'vim.fn.tempname() returned nil or empty string')
 
   if content then
@@ -132,7 +126,7 @@ function M.tmpfile(content)
       vim.fn.writefile(
         type(content) == 'table' and content or { content },
         tmp,
-        'b'
+        'bs'
       ) == 0,
       'Error: file write failed'
     )
@@ -250,7 +244,7 @@ function M.start_nvim(opts)
 
   do
     local ok
-    sleep(200)
+    M.wait(200)
 
     for _ = 1, 4 do
       ok, chan = pcall(
@@ -258,7 +252,7 @@ function M.start_nvim(opts)
       )
 
       if ok then break end
-      sleep(500)
+      M.wait(500)
     end
 
     assert(ok, chan)
@@ -295,6 +289,7 @@ function M.start_nvim(opts)
     )
   end
 
+  -- Where the magic happens!
   setmetatable(self, {
     __index = function(_, key)
       return M[key]
@@ -310,7 +305,6 @@ function M.start_nvim(opts)
   })
 
   assert(self:eval 'v:vim_did_enter' == 1, 'ERROR: vim has not entered yet')
-
   return self
 end
 
@@ -363,7 +357,9 @@ function M.autocmd(autocmd, opts)
 
     local timer = M.set_timeout(
       1e4,
-      function() co.resume(co, false, 'timed out waiting for autocmd') end
+      function()
+        assert(co.resume(curr_co, false, 'timed out waiting for autocmd'))
+      end
     )
 
     local result = { co.yield() }
@@ -380,13 +376,13 @@ end
 function M.await_vim_enter()
   if vim.v.vim_did_enter == 1 or vim.v.vim_did_enter == true then return end
   M.autocmd('VimEnter', { once = true }):await()
-  M.await_schedule()
+  M.wait(100)
 end
 
 ---@param fn function
 ---@return number ns
 function M.time_it_once(fn)
-  local hrtime = vim.loop.hrtime
+  local hrtime = uv.hrtime
   local start = hrtime()
   fn()
   return hrtime() - start
@@ -427,7 +423,7 @@ end
 ---@param cb function
 ---@return unknown
 function M.set_timeout(ms, cb)
-  local timer = vim.loop.new_timer()
+  local timer = uv.new_timer()
 
   timer:start(ms, 0, function()
     timer:stop()

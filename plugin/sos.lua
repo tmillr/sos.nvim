@@ -1,1 +1,1 @@
-require 'sos.plugin'
+require 'sos'
