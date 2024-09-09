@@ -1,6 +1,6 @@
+local util = require 'sos.util'
+local api, uv = vim.api, vim.uv or vim.loop
 local M = {}
-local api = vim.api
-local uv = vim.loop
 
 ---@type table<string, boolean>
 M.savable_cmds = setmetatable({
@@ -15,32 +15,36 @@ M.savable_cmds = setmetatable({
   __index = function(_tbl, key) return vim.startswith(key, 'Plenary') end,
 })
 
--- TODO: Allow user to provide custom vim regex via opts/cfg?
+-- TODO: Allow user to provide custom vim regex via opts/cfg? Ignore `:set` and
+-- our own commands.
 M.savable_cmdline = vim.regex [=[system\|:lua\|[Jj][Oo][Bb]]=]
 
-local recognized_buftypes =
-  vim.regex [[\%(^$\)\|\%(^\%(acwrite\|help\|nofile\|nowrite\|quickfix\|terminal\|prompt\)$\)]]
-
----@param val any
----@return boolean
-local function tobool(val) return val == true or val == 1 end
+local recognized_buftypes = {
+  [''] = true,
+  acwrite = true,
+  help = false,
+  nofile = false,
+  nowrite = false,
+  quickfix = false,
+  terminal = false,
+  prompt = false,
+}
 
 ---@param buf integer
 ---@nodiscard
 ---@return boolean
 local function wanted_buftype(buf)
   local buftype = vim.bo[buf].bt
+  local wanted = recognized_buftypes[buftype]
 
-  if not recognized_buftypes:match_str(buftype) then
+  if wanted == nil then
     vim.notify_once(
       ('[sos.nvim]: ignoring buf with unknown buftype "%s"'):format(buftype),
       vim.log.levels.WARN
     )
-
-    return false
   end
 
-  return buftype == '' or buftype == 'acwrite'
+  return wanted or false
 end
 
 local err
@@ -79,12 +83,14 @@ end
 ---@nodiscard
 ---@return boolean, string?
 function M.write_buf_if_needed(buf)
+  -- TODO: bufloaded, modifiable, acwrite pattern
   if
     vim.bo[buf].mod
     and vim.o.write
     and not vim.bo[buf].ro
     and api.nvim_buf_is_loaded(buf)
     and wanted_buftype(buf)
+    and not vim.b[buf].sos_ignore
   then
     local name = api.nvim_buf_get_name(buf)
     -- Cannot write to an empty filename
@@ -124,7 +130,7 @@ function M.write_buf_if_needed(buf)
           -- Parent dir exists but isn't writeable.
           return true
         elseif dir_errname == 'ENOENT' then
-          if tobool(vim.fn.mkdir(dir, 'p')) then return write_buf(buf) end
+          if util.to_bool(vim.fn.mkdir(dir, 'p')) then return write_buf(buf) end
 
           -- Parent dir doesn't exist, failed to create it (e.g.
           -- perms).
@@ -168,7 +174,7 @@ function M.on_timer()
     end
   end
 
-  if errs[1] ~= nil then api.nvim_err_writeln(table.concat(errs, '\n')) end
+  if #errs > 0 then api.nvim_err_writeln(table.concat(errs, '\n')) end
 end
 
 return M

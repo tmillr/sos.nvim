@@ -1,5 +1,4 @@
 local M = {}
-local commands = require 'sos.commands'
 local impl = require 'sos.impl'
 local api = vim.api
 local augroup = 'sos-autosaver'

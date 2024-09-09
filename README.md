@@ -167,7 +167,8 @@ If you have Neovim setup to format on save/write via autocmds, you may experienc
 
 TODO: provide (better) fix or suggestions, finish this section
 
-In the meantime, if you are having issues due to a format-on-save setup and until a better solution is discovered, you can try:
+In the meantime, if you are having issues due to a format-on-save setup, and until a better solution is discovered, you can try:
+
 - changing which autocmd/event triggers autoformatting (e.g. use `InsertLeave` instead)
 - disabling format-on-save altogether
 
@@ -179,4 +180,3 @@ In the meantime, if you are having issues due to a format-on-save setup and unti
 [prs]: /../../pulls
 [q&a]: /../../discussions/categories/q-a
 [undotree]: ../../../../mbbill/undotree
-[^1]: djdjdjdj

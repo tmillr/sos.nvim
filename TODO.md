@@ -106,3 +106,5 @@
       file/buf the err msg is for).
 
 - [ ] feat: opt (and maybe cmd/func) to disable timer
+
+- [ ] Calling `setup()` should reset timer if it is active?

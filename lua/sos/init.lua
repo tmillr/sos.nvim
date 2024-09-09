@@ -49,18 +49,33 @@ Cons
 TODO: Command/Fn/Opt to enable/disable locally (per buf)
 --]]
 
----@class sos.Timer
----@field start function
----@field stop function
-
-local M = {}
-local MultiBufObserver = require 'sos.bufevents'
+local MultiBufObserver = require 'sos.observer'
 local autocmds = require 'sos.autocmds'
 local cfg = require 'sos.config'
-local errmsg = require('sos.util').errmsg
+local util = require 'sos.util'
+local errmsg = util.errmsg
 local api = vim.api
-local loop = vim.loop
-local augroup_init = 'sos-autosaver/init'
+local augroup_init = 'sos-autosaver.init'
+
+---@class sos
+local mt = { buf_observer = MultiBufObserver:new() }
+
+---@type sos
+local M = setmetatable({}, { __index = mt })
+
+---@param unset_ok? boolean don't error if the global is unset
+---@return table? module # the current module if it was reloaded, otherwise `nil`
+local function was_reloaded(unset_ok)
+  local m = _G.__sos_autosaver__
+  assert(unset_ok or m)
+  return m ~= M and m or nil
+end
+
+local function redirect_call()
+  local current = was_reloaded()
+  if current then setmetatable(M, getmetatable(current)) end
+  return current
+end
 
 local function manage_vim_opts(config, plug_enabled)
   local aw = config.autowrite
@@ -84,61 +99,9 @@ local function manage_vim_opts(config, plug_enabled)
   -- it then.
 end
 
-local function start(verbose)
-  manage_vim_opts(cfg, true)
-  autocmds.refresh(cfg)
-  if __sos_autosaver__.buf_observer ~= nil then return end
-
-  __sos_autosaver__.buf_observer =
-    MultiBufObserver:new(cfg, __sos_autosaver__.timer)
-
-  __sos_autosaver__.buf_observer:start()
-  if verbose then vim.notify('[sos.nvim]: enabled', vim.log.levels.INFO) end
-end
-
-local function stop(verbose)
-  manage_vim_opts(cfg, false)
-  autocmds.clear()
-  if __sos_autosaver__.buf_observer == nil then return end
-  __sos_autosaver__.buf_observer:destroy()
-  __sos_autosaver__.buf_observer = nil
-  if verbose then vim.notify('[sos.nvim]: disabled', vim.log.levels.INFO) end
-end
-
--- Init the global obj
---
--- The point of this is so that we can reload the plugin and persist some
--- things while doing so.
---
--- 1. Don't have to worry about leaking the long-lived timer (although it
---    porbably destroys itself anyway when garbage collected because the
---    timer userdata has a `__gc` handler in its metatable) because it
---    only gets created once and only once.
---
--- 2. It's not really possible/easy to detach `nvim_buf_attach` callbacks
---    after reloading the plugin, and we don't want different callbacks
---    with (potentially) different behavior attached to different buffers
---    (e.g. the plugin is reloaded/re-sourced during development).
-if __sos_autosaver__ == nil then
-  local t = loop.new_timer()
-  loop.unref(t)
-  __sos_autosaver__ = {
-    timer = t,
-    buf_observer = nil,
-  }
-else
-  -- Plugin was reloaded somehow
-  rawset(cfg, 'enabled', nil)
-  -- Destroy the old observer
-  stop()
-  -- Cancel potential pending call (if vim hasn't entered yet)
-  api.nvim_create_augroup(augroup_init, { clear = true })
-end
-
----@param verbose? boolean
----@return nil
-local function main(verbose)
-  if vim.v.vim_did_enter == 0 or vim.v.vim_did_enter == false then
+---@return boolean awaiting
+local function defer_init()
+  if not util.to_bool(vim.v.vim_did_enter) then
     api.nvim_create_augroup(augroup_init, { clear = true })
 
     api.nvim_create_autocmd('VimEnter', {
@@ -146,17 +109,35 @@ local function main(verbose)
       pattern = '*',
       desc = 'Initialize sos.nvim',
       once = true,
-      callback = function() main(false) end,
+      callback = function() M.setup() end,
     })
 
-    return
+    return true
   end
 
-  if cfg.enabled then
-    start(verbose)
-  else
-    stop(verbose)
-  end
+  return false
+end
+
+---@param verbose? boolean
+function mt.enable(verbose)
+  cfg.enabled = true
+  assert(not was_reloaded())
+  if defer_init() then return end
+  manage_vim_opts(cfg, true)
+  autocmds.refresh(cfg)
+  M.buf_observer:start(cfg)
+  if verbose then util.notify 'enabled' end
+end
+
+---@param verbose? boolean
+function mt.disable(verbose)
+  cfg.enabled = false
+  assert(not was_reloaded())
+  if defer_init() then return end
+  manage_vim_opts(cfg, false)
+  autocmds.clear()
+  M.buf_observer:stop()
+  if verbose then util.notify 'disabled' end
 end
 
 ---Missing keys in `opts` are left untouched and will continue to use their
@@ -165,7 +146,7 @@ end
 ---@param opts? sos.Config
 ---@param reset? boolean Reset all options to their defaults before applying `opts`
 ---@return nil
-function M.setup(opts, reset)
+function mt.setup(opts, reset)
   vim.validate { opts = { opts, 'table', true } }
 
   if reset then
@@ -187,7 +168,107 @@ function M.setup(opts, reset)
     end
   end
 
-  main(true)
+  if not defer_init() then
+    if cfg.enabled then
+      M.enable(false)
+    else
+      M.disable(false)
+    end
+  end
+end
+
+---Enables/whitelists a buffer so that it may be autosaved. This is the default
+---initial state of all buffers.
+---
+---NOTE: An enabled buffer that becomes modified is not necessarily guaranteed
+---to be saved (e.g. it won't be saved if the `'readonly'` vim option is set).
+---@param buf integer
+---@param verbose? boolean
+function mt.enable_buf(buf, verbose)
+  local ignored = M.buf_observer:ignore_buf(buf, false)
+  if verbose then
+    util.notify(
+      'buffer %s: #%d %s',
+      nil,
+      nil,
+      ignored and 'disabled' or 'enabled',
+      buf == 0 and api.nvim_get_current_buf() or buf,
+      util.bufnr_to_name(buf) or ''
+    )
+  end
+end
+
+---Disables/blacklists a buffer so that it will not be autosaved.
+---@param buf integer
+---@param verbose? boolean
+function mt.disable_buf(buf, verbose)
+  local ignored = M.buf_observer:ignore_buf(buf, true)
+  if verbose then
+    util.notify(
+      'buffer %s: #%d %s',
+      nil,
+      nil,
+      ignored and 'disabled' or 'enabled',
+      buf == 0 and api.nvim_get_current_buf() or buf,
+      util.bufnr_to_name(buf) or ''
+    )
+  end
+end
+
+---@param buf integer
+---@param verbose? boolean
+function mt.toggle_buf(buf, verbose)
+  local ignored = M.buf_observer:toggle_ignore_buf(buf)
+  if verbose then
+    util.notify(
+      'buffer %s: #%d %s',
+      nil,
+      nil,
+      ignored and 'disabled' or 'enabled',
+      buf == 0 and api.nvim_get_current_buf() or buf,
+      util.bufnr_to_name(buf) or ''
+    )
+  end
+end
+
+---Returns `false` if `buf` is completely ignored/blacklisted for autosaving.
+---
+---NOTE: An enabled buffer that becomes modified is not necessarily guaranteed
+---to be saved (e.g. it won't be saved if the `'readonly'` vim option is set).
+---@param buf integer
+function mt.buf_enabled(buf) return not M.buf_observer:buf_ignored(buf) end
+
+do
+  require 'sos.commands'
+
+  -- Init the global obj
+  --
+  -- The point of this is so that we can reload the plugin and persist some
+  -- things while doing so.
+  --
+  -- 1. Don't have to worry about leaking the long-lived timer (although it
+  --    probably destroys itself anyway when garbage collected because the
+  --    timer userdata has a `__gc` handler in its metatable) because it
+  --    only gets created once and only once.
+  --
+  -- 2. It's not really possible/easy to detach `nvim_buf_attach` callbacks
+  --    after reloading the plugin, and we don't want different callbacks
+  --    with (potentially) different behavior attached to different buffers
+  --    (e.g. the plugin is reloaded/re-sourced during development).
+  local old = was_reloaded(true)
+
+  if old then
+    -- Plugin was reloaded somehow
+    rawset(cfg, 'enabled', nil)
+
+    -- TODO: Forcefully detach buf callbacks? Emit a warning?
+    old.stop()
+
+    -- Cancel potential pending call (if vim hasn't entered yet)
+    api.nvim_create_augroup(augroup_init, { clear = true })
+  end
+
+  _G.__sos_autosaver__ = M
 end
 
 return M
