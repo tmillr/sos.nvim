@@ -10,7 +10,7 @@
 
 local defaults = {
   enabled = true,
-  timeout = 20000,
+  timeout = 10000,
   autowrite = true,
   save_on_cmd = 'some',
   save_on_bufleave = true,

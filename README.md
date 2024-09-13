@@ -42,12 +42,12 @@ require("sos").setup {
     enabled = true,
 
     -- Time in ms after which `on_timer()` will be called. By default, `on_timer()`
-    -- is called 20 seconds after the last buffer change. Whenever an observed
+    -- is called 10 seconds after the last buffer change. Whenever an observed
     -- buffer changes, the global timer is started (or reset, if it was already
     -- started), and a countdown of `timeout` milliseconds begins. Further buffer
     -- changes will then debounce the timer. After firing, the timer is not
     -- started again until the next buffer change.
-    timeout = 20000,
+    timeout = 10000,
 
     -- Set, and manage, Vim's 'autowrite' option (see :h 'autowrite'). Allowing
     -- sos to "manage" the option makes it so that all autosaving functionality
