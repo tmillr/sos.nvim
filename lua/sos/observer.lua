@@ -19,6 +19,13 @@ function MultiBufObserver:new()
     pending_detach = {},
   }
 
+  function instance:debounce()
+    local result, err, _ = timer:stop()
+    assert(result == 0, err)
+    result, err, _ = timer:start(self.timeout, 0, self.on_timer)
+    assert(result == 0, err)
+  end
+
   ---Called whenever a buffer incurs a savable change (i.e. writing the buffer
   ---would change the file's contents on the filesystem). All this does is
   ---debounce the timer.
@@ -28,10 +35,7 @@ function MultiBufObserver:new()
   ---@return true | nil
   function instance:on_change(buf)
     if not running or self.pending_detach[buf] then return true end -- detach
-    local result, err, _ = timer:stop()
-    assert(result == 0, err)
-    result, err, _ = timer:start(self.timeout, 0, self.on_timer)
-    assert(result == 0, err)
+    self:debounce()
   end
 
   ---Attach buffer callbacks if not already attached
@@ -133,20 +137,25 @@ function MultiBufObserver:new()
     self.autocmds = {}
   end
 
-  ---@class sos.MultiBufObserver.start.opts
-  ---@field [string] any
+  ---@class sos.MultiBufObserver.opts
   ---@field timeout integer timeout in milliseconds
   ---@field on_timer function
   ---@field should_observe_buf fun(buf: integer): boolean
 
   ---Begin observing buffers with this observer. Ok to call when already
   ---running.
-  ---@param opts sos.MultiBufObserver.start.opts
+  ---@param opts sos.MultiBufObserver.opts
   function instance:start(opts)
     self.timeout = opts.timeout
     self.on_timer = vim.schedule_wrap(opts.on_timer)
     self.should_observe_buf_cb = opts.should_observe_buf
-    if running then return end
+
+    if running then
+      -- Timeout may have changed
+      if self:due_in() > 0 then self:debounce() end
+      return
+    end
+
     running = true
 
     vim.list_extend(self.autocmds, {
