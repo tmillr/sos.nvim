@@ -33,10 +33,26 @@ function M.trigger_save(buf)
   M.cmd 'tabnew'
 end
 
-function M.buf.modify()
-  assert.is_false(vim.bo.mod, 'buffer is already modified')
+---@param expect_mod? boolean
+function M.buf.modify(expect_mod)
+  if expect_mod then
+    assert.is_true(vim.bo.mod, "buffer isn't modified")
+  else
+    assert.is_false(vim.bo.mod, 'buffer is already modified')
+  end
+
+  local before = {
+    tick = api.nvim_buf_get_changedtick(0),
+    lines = api.nvim_buf_get_lines(0, 0, -1, true),
+  }
+
   M.input 'ochanges<Esc>'
+
   assert.is_true(vim.bo.mod, 'modification unsuccessful')
+  assert.are.not_same(before, {
+    tick = api.nvim_buf_get_changedtick(0),
+    lines = api.nvim_buf_get_lines(0, 0, -1, true),
+  })
 end
 
 return M

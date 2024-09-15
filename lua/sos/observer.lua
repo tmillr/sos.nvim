@@ -20,9 +20,7 @@ function MultiBufObserver:new()
   }
 
   function instance:debounce()
-    local result, err, _ = timer:stop()
-    assert(result == 0, err)
-    result, err, _ = timer:start(self.timeout, 0, self.on_timer)
+    local result, err, _ = timer:start(self.timeout, 0, self.on_timer)
     assert(result == 0, err)
   end
 
@@ -80,6 +78,7 @@ function MultiBufObserver:new()
 
   ---@param buf integer
   function instance:should_observe_buf(buf)
+    -- TODO: Should we skip nameless bufs too?
     return not vim.b[buf].sos_ignore and self.should_observe_buf_cb(buf)
   end
 
@@ -127,6 +126,8 @@ function MultiBufObserver:new()
   ---Destroy this observer
   ---@return nil
   function instance:stop()
+    -- Only way to reset timeout/time left value.
+    timer:start(0, 0, function() end)
     timer:stop()
     running = false
 
@@ -214,6 +215,9 @@ function MultiBufObserver:new()
     end
   end
 
+  ---Returns the number of milliseconds until the next timer fire. Returns `0`
+  ---if the timer has already fired/expired or has been stopped.
+  ---@return integer ms
   function instance:due_in() return timer:get_due_in() end
 
   return instance
