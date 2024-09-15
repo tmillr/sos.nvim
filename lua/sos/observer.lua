@@ -202,7 +202,9 @@ function MultiBufObserver:new()
               --        text changed (see `:h 'mod'`), and that is what made
               --        BufModifiedSet fire. Since we're not using the
               --        `on_changedtick` buf listener/callback, BufModifiedSet is
-              --        our only way to detect this type of change.
+              --        our only way to detect this type of change. TODO: This
+              --        will miss non-textual changes that occurr while buf is
+              --        already `modified`?
               self:on_change(buf)
             end
           end
