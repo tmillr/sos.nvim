@@ -212,6 +212,7 @@ function MultiBufObserver:new()
       }),
     })
 
+    -- TODO: Use getbufinfo() here for performance?
     for _, bufnr in ipairs(api.nvim_list_bufs()) do
       self:process_buf(bufnr)
     end

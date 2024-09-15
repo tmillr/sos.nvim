@@ -80,62 +80,76 @@ local function write_buf(buf)
 end
 
 ---@param buf integer
+---@return boolean success
+---@return string? errmsg
 ---@nodiscard
----@return boolean, string?
 function M.write_buf_if_needed(buf)
-  -- TODO: bufloaded, modifiable, acwrite pattern
+  -- TODO: bufloaded, ignore nomodifiable, acwrite pattern
+
+  -- TODO: consider the case where it's not allowed to modify file but is
+  -- allowed to create a file/dirent?
+
+  -- Using values directly from `getbufinfo()` table (from caller) might be a
+  -- little bit faster here, but those values potentially become outdated due to
+  -- `BufWrite` autocmds? So, we'll just check everything again below and not
+  -- assume anything.
+  local bufinfo = vim.fn.getbufinfo(buf)[1]
+
+  -- Invalid buf (wiped by autocmd?)
+  if not bufinfo then return true end
+  local name = bufinfo.name
+
   if
-    vim.bo[buf].mod
-    and vim.o.write
-    and not vim.bo[buf].ro
-    and api.nvim_buf_is_loaded(buf)
-    and wanted_buftype(buf)
-    and not vim.b[buf].sos_ignore
+    bufinfo.changed == 0
+    or not vim.o.write
+    or vim.bo[buf].ro
+    or bufinfo.loaded == 0
+    or not wanted_buftype(buf)
+    or bufinfo.variables.sos_ignore
+    or #name == 0
   then
-    local name = api.nvim_buf_get_name(buf)
-    -- Cannot write to an empty filename
-    if name == '' then return true end
-    local buftype = vim.bo[buf].bt
+    return true
+  end
 
-    if buftype == 'acwrite' then
-      return write_buf(buf)
-    elseif buftype == '' then
-      local stat, _errmsg, errname = uv.fs_stat(name)
+  local buftype = vim.bo[buf].bt
 
-      if stat then
-        -- File exists: only write if it's writeable and not a dir.
-        if vim.fn.filewritable(name) == 1 and not stat.type:find '^dir' then
+  if buftype == 'acwrite' then
+    return write_buf(buf)
+  elseif buftype == '' then
+    local stat, _errmsg, errname = uv.fs_stat(name)
+
+    if stat then
+      -- File exists: only write if it's writeable and not a dir.
+      if vim.fn.filewritable(name) == 1 and not stat.type:find '^dir' then
+        return write_buf(buf)
+      end
+
+      return true
+    elseif errname == 'ENOENT' then
+      -- TODO: Try stat again on error (or certain errors, like if
+      -- EINTR is possible to observe in lua)?
+      if name:find '[\\/]$' then
+        -- Unsure what the user would want here, so just return
+        -- success and don't write anything.
+        return true
+      end
+
+      local dir = vim.fn.fnamemodify(name, ':h')
+      local dir_stat, _dir_errmsg, dir_errname = uv.fs_stat(dir)
+
+      if dir_stat then
+        if vim.fn.filewritable(dir) == 2 then
+          -- Parent is writeable dir
           return write_buf(buf)
         end
 
+        -- Parent dir exists, but isn't writeable.
         return true
-      elseif errname == 'ENOENT' then
-        -- TODO: Try stat again on error (or certain errors, like if
-        -- EINTR is possible to observe in lua)?
-        if name:find '[\\/]$' then
-          -- Unsure what the user would want here, so just return
-          -- success and don't write anything.
-          return true
-        end
+      elseif dir_errname == 'ENOENT' then
+        if util.to_bool(vim.fn.mkdir(dir, 'p')) then return write_buf(buf) end
 
-        local dir = vim.fn.fnamemodify(name, ':h')
-        local dir_stat, _dir_errmsg, dir_errname = uv.fs_stat(dir)
-
-        if dir_stat then
-          if vim.fn.filewritable(dir) == 2 then
-            -- Parent is writeable dir
-            return write_buf(buf)
-          end
-
-          -- Parent dir exists but isn't writeable.
-          return true
-        elseif dir_errname == 'ENOENT' then
-          if util.to_bool(vim.fn.mkdir(dir, 'p')) then return write_buf(buf) end
-
-          -- Parent dir doesn't exist, failed to create it (e.g.
-          -- perms).
-          return true
-        end
+        -- Parent dir doesn't exist, failed to create it (e.g. perms).
+        return true
       end
     end
   end
@@ -158,7 +172,8 @@ end
 function M.on_timer()
   local errs = {}
 
-  for _, buf in ipairs(api.nvim_list_bufs()) do
+  for _, bufinfo in ipairs(vim.fn.getbufinfo { bufloaded = 1, bufmodified = 1 }) do
+    local buf = bufinfo.bufnr
     local ok, res = M.write_buf_if_needed(buf)
 
     if not ok then
