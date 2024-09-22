@@ -1,4 +1,4 @@
-local api = vim.api
+local api, uv = vim.api, vim.uv or vim.loop
 local util = require 'sos._test.util'
 
 local got_VimSuspend_after_resuming
@@ -70,7 +70,7 @@ describe('neovim by default', function()
     nvim:buf_set_lines(0, 0, -1, true, { 'x' })
     nvim:suspend()
     util.wait(500)
-    assert(vim.loop.fs_stat(tmp) == nil, 'expected file not to be saved')
+    assert(uv.fs_stat(tmp) == nil, 'expected file not to be saved')
   end)
 
   it(
@@ -84,7 +84,7 @@ describe('neovim by default', function()
       nvim:buf_set_lines(0, 0, -1, true, { 'x' })
       nvim:suspend()
       util.wait(250)
-      local stat = assert(vim.loop.fs_stat(tmp))
+      local stat = assert(uv.fs_stat(tmp))
       assert(stat.type == 'file', "dirent exists but isn't a regular file")
     end
   )
