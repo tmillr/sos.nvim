@@ -2,9 +2,6 @@ local action = require 'sos._test.action'
 local util = require 'sos._test.util'
 local api = vim.api
 
-describe('command', function()
-  -- (setup or before)(function() util.await_vim_enter() end)
-
 describe('resolve_bufspec()', function()
   local ret, emsg
   api.nvim_create_user_command('SomeCmd', function(info)
