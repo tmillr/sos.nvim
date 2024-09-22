@@ -24,7 +24,7 @@ describe('test harness', function()
       })
 
       nvim:suspend()
-      util.wait(500)
+      util.wait(250)
       res.got_VimSuspend = util.file_exists(got_suspend)
       got_VimResume_before_resuming = util.file_exists(got_resume)
 
@@ -33,7 +33,7 @@ describe('test harness', function()
       -- assert(out:find "^T", "ps output: " .. out)
 
       nvim:cont()
-      util.wait(500)
+      util.wait(250)
       res.got_VimResume = util.file_exists(got_resume)
       got_VimSuspend_after_resuming = not res.got_VimSuspend
         and util.file_exists(got_suspend)
@@ -47,19 +47,14 @@ describe('test harness', function()
 end)
 
 describe('VimSuspend and VimResume', function()
-  it('fire at the correct and incorrect time, respectively', function()
+  it('fire at the correct time', function()
     assert.is.False(
       got_VimSuspend_after_resuming,
-      'incorrectly got VimSuspend after resuming, expected before'
+      'expected VimSuspend before resuming'
     )
-    -- TODO: This isn't the behavior when actually running/using nvim normally
-    -- in a normal terminal. Why?
-    --
-    -- Maybe this test should only be run manually (or, we need to upgrade the
-    -- test harness to be able to handle normal/realistic suspend/resume).
-    assert.is.True(
+    assert.is.False(
       got_VimResume_before_resuming,
-      'correctly got VimResume after resuming, expected before'
+      'expected VimResume after resuming'
     )
   end)
 end)
@@ -68,7 +63,7 @@ describe('neovim by default', function()
   -- NOTE: However, 'autowriteall' implies 'autowrite'!
   it("doesn't save on suspend when 'autowrite' is off", function()
     local nvim = util.start_nvim()
-    local tmp = vim.fn.tempname()
+    local tmp = util.tmpfile()
     nvim:set_option('autowrite', false)
     nvim:set_option('autowriteall', false)
     nvim:buf_set_name(0, tmp)
@@ -76,23 +71,21 @@ describe('neovim by default', function()
     nvim:suspend()
     util.wait(500)
     assert(vim.loop.fs_stat(tmp) == nil, 'expected file not to be saved')
-    vim.fn.delete(tmp)
   end)
 
   it(
     "does save on suspend when 'autowrite' is on, even if &bufhidden = hide",
     function()
       local nvim = util.start_nvim()
-      local tmp = vim.fn.tempname()
+      local tmp = util.tmpfile()
       nvim:buf_set_option(0, 'bufhidden', 'hide')
       nvim:set_option('autowrite', true)
       nvim:buf_set_name(0, tmp)
       nvim:buf_set_lines(0, 0, -1, true, { 'x' })
       nvim:suspend()
-      util.wait(500)
+      util.wait(250)
       local stat = assert(vim.loop.fs_stat(tmp))
       assert(stat.type == 'file', "dirent exists but isn't a regular file")
-      vim.fn.delete(tmp)
     end
   )
 
@@ -112,7 +105,7 @@ describe('neovim by default', function()
   -- the checking of file times on vim resume.
   it("doesn't do `:checktime` nor autoread on resume", function()
     local nvim = util.start_nvim()
-    local tmp = vim.fn.tempname()
+    local tmp = util.tmpfile()
     assert(vim.fn.writefile({ 'old' }, tmp, 'b') == 0)
     nvim:set_option('autoread', true)
     nvim:cmd({ cmd = 'edit', args = { tmp } }, { output = false })
@@ -128,12 +121,11 @@ describe('neovim by default', function()
     assert(
       table.concat(nvim:buf_get_lines(0, 0, -1, true), '') == 'new new new'
     )
-    vim.fn.delete(tmp)
   end)
 
   it("doesn't automatically check file times upon leaving term", function()
     local nvim = util.start_nvim {}
-    local tmp = vim.fn.tempname()
+    local tmp = util.tmpfile()
     assert(vim.fn.writefile({ 'old' }, tmp, 'b') == 0)
     nvim:set_option('autoread', true)
 
@@ -156,14 +148,11 @@ describe('neovim by default', function()
     nvim:set_current_tabpage(tab) -- trigger sos to check file times (which triggers autoread)
 
     assert(table.concat(nvim:buf_get_lines(buf, 0, -1, true), '') == 'old')
-
-    vim.fn.delete(tmp)
   end)
 
   it('fires UIEnter on resume', function()
     util.with_nvim(function(nvim)
       local got_UIEnter = util.tmpfile()
-
       nvim:create_autocmd('UIEnter', {
         once = true,
         nested = false,
@@ -171,15 +160,10 @@ describe('neovim by default', function()
       })
 
       nvim:suspend()
-      util.wait(500)
-      -- TODO: This line will fail when testing, but this isn't the behavior
-      -- when actually running/using nvim normally in a normal terminal. Why?
-      --
-      -- Maybe this test should only be run manually (or, we need to upgrade the
-      -- test harness to be able to handle normal/realistic suspend/resume).
-      -- assert.is.False(util.file_exists(got_UIEnter))
+      util.wait(250)
+      assert.is.False(util.file_exists(got_UIEnter))
       nvim:cont()
-      util.wait(500)
+      util.wait(250)
       assert.is.True(util.file_exists(got_UIEnter))
     end)
   end)
@@ -197,7 +181,7 @@ describe('sos.nvim', function()
   -- Maybe these kinds of tests should only be run manually (or, we need to
   -- upgrade the test harness to be able to handle normal/realistic
   -- suspend/resume).
-  pending('should automatically check file times on resume', function()
+  it('should automatically check file times on resume', function()
     local nvim = util.start_nvim {
       xargs = {
         '-u',

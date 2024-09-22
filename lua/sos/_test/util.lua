@@ -83,10 +83,10 @@ function M.bufwritemock(onwrite)
   })
 end
 
+---@overload fun(nvim: table, file?: string): integer, string
+---@overload fun(file?: string): integer, string
 ---@return integer bufnr
 ---@return string output
----@overload fun(nvim: table, file?: string)
----@overload fun(file?: string)
 function M.silent_edit(...)
   local external_nvim_or_api, file = M.nvim_recv_or_api(...)
   local out = external_nvim_or_api.nvim_cmd({
@@ -222,7 +222,6 @@ function M.start_nvim(opts)
   }
 
   local sock_addr = M.tmpfile()
-
   local args = {
     'nvim',
     '--clean',
@@ -239,23 +238,28 @@ function M.start_nvim(opts)
     table.insert(args, 2, '-u')
   end
 
-  local jobid = vim.fn.jobstart(args, job_opts)
+  local jobid = vim.fn.jobstart({ 'bash', '--norc', '--noprofile' }, job_opts)
+  assert(jobid > 0, 'ERROR: jobstart(): failed to start nvim process')
   local chan
+  M.wait(100)
+
+  for i = 2, #args do
+    args[i] = "'" .. args[i]:gsub("'", "'\\''") .. "'"
+  end
+
+  assert(vim.fn.chansend(jobid, table.concat(args, ' ')) > 0)
+  assert(vim.fn.chansend(jobid, '\r') > 0)
 
   do
-    local ok
-    M.wait(200)
+    local i, ok = 0, nil
 
-    for _ = 1, 4 do
+    repeat
+      M.wait(50)
       ok, chan = pcall(
         function() return vim.fn.sockconnect('pipe', sock_addr, { rpc = true }) end
       )
-
-      if ok then break end
-      M.wait(500)
-    end
-
-    assert(ok, chan)
+      i = i + 1
+    until ok or (i == 20 and assert(ok, chan))
   end
 
   assert(
@@ -272,9 +276,13 @@ function M.start_nvim(opts)
 
   function self:req(...) return vim.rpcrequest(self.chan, ...) end
 
-  function self:suspend() assert(self:input '<C-Z>' > 0) end
+  function self:suspend()
+    -- assert(self:input '<C-Z>' > 0)
+    assert(vim.fn.chansend(jobid, '\26') > 0)
+  end
 
-  function self:cont() M.kill(self.pid, 'SIGCONT') end
+  -- function self:cont() M.kill(self.pid, 'SIGCONT') end
+  function self:cont() assert(vim.fn.chansend(jobid, 'fg\r') > 0) end
 
   function self:stop() vim.fn.jobstop(jobid) end
 
