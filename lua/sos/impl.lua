@@ -111,8 +111,10 @@ function M.write_buf_if_needed(buf)
     return true
   end
 
-  local buftype = vim.bo[buf].bt
+  local scheme = util.uri_scheme(name)
+  if scheme then return write_buf(buf) end
 
+  local buftype = vim.bo[buf].bt
   if buftype == 'acwrite' then
     return write_buf(buf)
   elseif buftype == '' then

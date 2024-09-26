@@ -39,4 +39,12 @@ function M.getbufs()
   return bufs
 end
 
+---@param path string
+---@return string? scheme
+function M.uri_scheme(path)
+  -- Not very strict on purpose
+  local scheme, _rest = path:match '^[%s%c%z]*(%w[%-_%w+.]+):+(/*)'
+  return scheme
+end
+
 return M

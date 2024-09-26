@@ -65,8 +65,16 @@ function M.resolve_bufspec(info)
     local arg = info.fargs[1]
 
     -- Use `[$]` for `$`, otherwise we'll get highest bufnr.
-    buf = vim.fn.bufnr(arg == '$' and '[$]' or arg or '')
-    if buf < 1 then errmsg 'argument matched none or multiple buffers' end
+    if arg == '$' then
+      buf = vim.fn.bufnr '^[$]$'
+      buf = buf > 0 and buf or vim.fn.bufnr '*[$]*'
+    else
+      buf = vim.fn.bufnr(arg or '')
+    end
+
+    if buf < 1 then
+      return errmsg 'argument matched none or multiple buffers'
+    end
   end
 
   return buf
