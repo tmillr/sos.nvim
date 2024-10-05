@@ -47,6 +47,22 @@ function M.wait(ms)
   co.yield()
 end
 
+function M.wait_until(cond)
+  local interval = 100
+
+  for _ = 0, 3000, interval do
+    if cond() then return end
+    M.wait(interval)
+  end
+
+  error 'timed out waiting for condition'
+end
+
+function M.wait_then_wait_until(cond)
+  M.wait(100)
+  return M.wait_until(cond)
+end
+
 ---@async
 function M.setup_plugin(...)
   -- require("sos").setup(nil, true)
@@ -96,7 +112,7 @@ function M.silent_edit(...)
     mods = { silent = true },
   }, { output = true })
 
-  return api.nvim_get_current_buf(), out
+  return external_nvim_or_api.nvim_get_current_buf(), out
 end
 
 ---@param keys string
@@ -290,6 +306,7 @@ function M.start_nvim(opts)
     if type(f) == 'string' then
       return self:req('nvim_exec_lua', f, args or {})
     end
+
     return self:req(
       'nvim_exec_lua',
       ('return assert(loadstring(%q))(...)'):format(string.dump(f)),

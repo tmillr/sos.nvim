@@ -1,7 +1,19 @@
 {
-  "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
-  "Lua.runtime.version": "LuaJIT",
-  "Lua.diagnostics.unusedLocalExclude": ["_*", "api"],
-  "workspace.ignoreDir": ["tests", "_test", "perf"],
-  "workspace.checkThirdParty": false
+    "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+
+    "runtime": {
+        "version": "LuaJIT",
+        "path": ["lua/?.lua", "lua/?/init.lua"],
+        "pathStrict": true
+    },
+
+    "workspace": {
+        "checkThirdParty": false,
+        "library": ["$VIMRUNTIME", "$PLENARY"],
+        "ignoreDir": ["/.meta", "/.log", ".vscode"]
+    },
+
+    "diagnostics": {
+        "unusedLocalExclude": ["_*", "api"]
+    }
 }
