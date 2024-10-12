@@ -1,8 +1,8 @@
 # Variables:
-#     DIR:         path to dir or file to test (default: all of target's files/tests)
-#     SEQ/SYNC:    if set, run tests sequentially (default: true for benchmarks, otherwise false)
+#   DIR:         path to dir or file to test (default: all of target's files/tests)
+#   SEQ/SYNC:    if set, run tests sequentially (default: true for benchmarks, otherwise false)
 
-.PHONY: test t fmt format perf bench checkfmt
+.PHONY: test t fmt format perf bench checkfmt types defaults
 
 # because ifdef considers empty vars unset...
 ifneq "$(origin SEQ)" "undefined"
@@ -39,3 +39,10 @@ perf bench: DIR ::= $(or $(DIR),perf)
 perf bench: override SEQ ::= true
 perf bench:
 	@$(run-test)
+
+types:
+	@nvim -l scripts/types.lua
+
+defaults:
+	@nvim -l scripts/defaults.lua
+# 	@stylua - <<< 'require("sos").setup '"$(nvim -c 'set rtp^=.' -l - <<< 'print(require"sos.config".def:print_default())' 2>&1)"

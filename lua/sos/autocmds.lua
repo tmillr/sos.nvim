@@ -7,7 +7,7 @@ local augroup = 'sos-autosaver'
 function M.clear() api.nvim_create_augroup(augroup, { clear = true }) end
 
 ---Update defined autocmds according to `cfg`
----@param cfg sos.Config
+---@param cfg sos.config.opts
 ---@return nil
 function M.refresh(cfg)
   api.nvim_create_augroup(augroup, { clear = true })

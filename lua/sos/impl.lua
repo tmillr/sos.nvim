@@ -30,11 +30,10 @@ local recognized_buftypes = {
   prompt = false,
 }
 
----@param buf integer
----@nodiscard
+---@param buftype string
 ---@return boolean
-local function wanted_buftype(buf)
-  local buftype = vim.bo[buf].bt
+---@nodiscard
+local function wanted_buftype(buftype)
   local wanted = recognized_buftypes[buftype]
 
   if wanted == nil then
@@ -42,12 +41,12 @@ local function wanted_buftype(buf)
       ('[sos.nvim]: ignoring buf with unknown buftype "%s"'):format(buftype),
       vim.log.levels.WARN
     )
+
+    return false
   end
 
-  return wanted or false
+  return wanted
 end
-
-local err
 
 -- TODO:
 -- * Consider adding :confirm here (e.g. will error otherwise if user didn't set
@@ -58,25 +57,48 @@ local err
 --   :h not-edited.
 -- * Use ++p flag to auto create parent dirs? Or prompt?
 
----@return nil
-local function write_current_buf()
-  err = nil
+-- local function write_current_buf()
+--   err = nil
+--   if require('sos.config').opts.hook.buf_autosave_pre(buf) == false then
+--     return
+--   end
+--
+--   local ok, res = pcall(
+--     api.nvim_cmd,
+--     { cmd = 'write', mods = { silent = true } },
+--     { output = false }
+--   )
+--
+--   -- require('sos.config').opts.hooks.buf_autosave_post()
+--   if not ok then err = res end
+-- end
 
-  local ok, res = pcall(
-    api.nvim_cmd,
-    { cmd = 'write', mods = { silent = true } },
-    { output = false }
-  )
-
-  if not ok then err = res end
-end
-
----@param buf integer
+---@param bufnr integer
+---@param bufname string
+---@return boolean success
+---@return string? errmsg
 ---@nodiscard
----@return boolean, string?
-local function write_buf(buf)
-  api.nvim_buf_call(buf, write_current_buf)
-  return not err, err
+local function write_buf(bufnr, bufname)
+  local ok, err
+
+  api.nvim_buf_call(bufnr, function()
+    if
+      require('sos.config').opts.hooks.buf_autosave_pre(bufnr, bufname) == false
+    then
+      return
+    end
+
+    ok, err = pcall(
+      api.nvim_cmd,
+      { cmd = 'write', mods = { silent = true } },
+      { output = false }
+    )
+
+    if ok then err = nil end
+    require('sos.config').opts.hooks.buf_autosave_post(bufnr, bufname, err)
+  end)
+
+  return ok, err
 end
 
 ---@param buf integer
@@ -84,75 +106,82 @@ end
 ---@return string? errmsg
 ---@nodiscard
 function M.write_buf_if_needed(buf)
-  -- TODO: bufloaded, ignore nomodifiable, acwrite pattern
-
   -- TODO: consider the case where it's not allowed to modify file but is
   -- allowed to create a file/dirent?
 
+  if not vim.o.write then return true end
+
   -- Using values directly from `getbufinfo()` table (from caller) might be a
   -- little bit faster here, but those values potentially become outdated due to
-  -- `BufWrite` autocmds? So, we'll just check everything again below and not
+  -- `BufWrite*` autocmds? So, we'll just check everything again below and not
   -- assume anything.
   local bufinfo = vim.fn.getbufinfo(buf)[1]
-
-  -- Invalid buf (wiped by autocmd?)
-  if not bufinfo then return true end
+  if not bufinfo then return true end -- Invalid buf (wiped by autocmd?)
   local name = bufinfo.name
 
   if
     bufinfo.changed == 0
-    or not vim.o.write
-    or vim.bo[buf].ro
-    or bufinfo.loaded == 0
-    or not wanted_buftype(buf)
-    or bufinfo.variables.sos_ignore
     or #name == 0
+    or bufinfo.loaded == 0
+    or bufinfo.variables.sos_ignore
   then
     return true
   end
 
-  local scheme = util.uri_scheme(name)
-  if scheme then return write_buf(buf) end
-
+  if vim.bo[buf].ro then return true end
   local buftype = vim.bo[buf].bt
-  if buftype == 'acwrite' then
-    return write_buf(buf)
-  elseif buftype == '' then
-    local stat, _errmsg, errname = uv.fs_stat(name)
+  if not wanted_buftype(buftype) then return true end
 
-    if stat then
-      -- File exists: only write if it's writeable and not a dir.
-      if vim.fn.filewritable(name) == 1 and not stat.type:find '^dir' then
-        return write_buf(buf)
-      end
+  local acwrite_buftype = buftype == 'acwrite'
+  local scheme = util.uri_scheme(name)
 
+  if
+    require('sos.config').predicate(buf, name, acwrite_buftype, scheme) == false
+  then
+    return true
+  end
+
+  if acwrite_buftype or scheme then return write_buf(buf, name) end
+
+  local stat, _errmsg, errname = uv.fs_stat(name)
+
+  if stat then
+    -- File exists: only write if it's writeable and not a dir.
+    if vim.fn.filewritable(name) == 1 and not stat.type:find '^dir' then
+      return write_buf(buf, name)
+    end
+
+    return true
+  elseif errname == 'ENOENT' then
+    -- TODO: Try stat again on error (or certain errors, like if EINTR is
+    -- possible to observe in lua)?
+    if name:find '[\\/]$' then
+      -- Unsure what the user would want here, so just return success and don't
+      -- write anything.
       return true
-    elseif errname == 'ENOENT' then
-      -- TODO: Try stat again on error (or certain errors, like if
-      -- EINTR is possible to observe in lua)?
-      if name:find '[\\/]$' then
-        -- Unsure what the user would want here, so just return
-        -- success and don't write anything.
-        return true
+    end
+
+    local dir = vim.fn.fnamemodify(name, ':h')
+    local dir_stat, _dir_errmsg, dir_errname = uv.fs_stat(dir)
+
+    if dir_stat then
+      if vim.fn.filewritable(dir) == 2 then
+        -- Parent is writeable dir
+        return write_buf(buf, name)
       end
 
-      local dir = vim.fn.fnamemodify(name, ':h')
-      local dir_stat, _dir_errmsg, dir_errname = uv.fs_stat(dir)
-
-      if dir_stat then
-        if vim.fn.filewritable(dir) == 2 then
-          -- Parent is writeable dir
-          return write_buf(buf)
-        end
-
-        -- Parent dir exists, but isn't writeable.
-        return true
-      elseif dir_errname == 'ENOENT' then
-        if util.to_bool(vim.fn.mkdir(dir, 'p')) then return write_buf(buf) end
-
-        -- Parent dir doesn't exist, failed to create it (e.g. perms).
-        return true
+      -- Parent dir exists, but isn't writeable.
+      return true
+    elseif dir_errname == 'ENOENT' then
+      if
+        require('sos.config').opts.create_parent_dirs
+        and util.to_bool(vim.fn.mkdir(dir, 'p'))
+      then
+        return write_buf(buf, name)
       end
+
+      -- Parent dir doesn't exist, failed to create it (e.g. perms).
+      return true
     end
   end
 
@@ -167,7 +196,14 @@ function M.should_observe_buf(buf)
   -- won't fire when unnamed buf becomes named, and even when buf is renamed
   -- and `BufNew` fires the name will still be the old name (even if using
   -- vim.api to get the name).
-  return wanted_buftype(buf) and vim.bo[buf].ma and not vim.bo[buf].ro
+
+  if not wanted_buftype(vim.bo[buf].bt) or vim.bo[buf].ro then return false end
+
+  if not vim.bo[buf].ma then
+    return require('sos.config').opts.should_save.unmodifiable
+  end
+
+  return true
 end
 
 ---@return nil

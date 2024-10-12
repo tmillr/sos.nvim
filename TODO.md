@@ -106,3 +106,7 @@
       file/buf the err msg is for).
 
 - [ ] feat: opt (and maybe cmd/func) to disable timer
+
+- [ ] No way to mark (on-the-fly) a single buffer to be autosaved if it gets
+      filtered out due to config. Also, in such situations, `:SosBufEnable` may
+      become confusing to users as it does not override the filtering.

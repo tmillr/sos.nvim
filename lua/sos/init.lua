@@ -56,6 +56,7 @@ local util = require 'sos.util'
 local errmsg = util.errmsg
 local api = vim.api
 local augroup_init = 'sos-autosaver.init'
+local did_setup = false
 
 ---@class sos
 local mt = { buf_observer = MultiBufObserver:new() }
@@ -71,14 +72,14 @@ local function was_reloaded(unset_ok)
   return m ~= M and m or nil
 end
 
-local function redirect_call()
-  local current = was_reloaded()
-  if current then setmetatable(M, getmetatable(current)) end
-  return current
-end
+-- local function redirect_call()
+--   local current = was_reloaded()
+--   if current then setmetatable(M, getmetatable(current)) end
+--   return current
+-- end
 
-local function manage_vim_opts(config, plug_enabled)
-  local aw = config.autowrite
+local function manage_vim_opts(plug_enabled)
+  local aw = cfg.opts.autowrite
 
   if aw == 'all' then
     vim.o.autowrite = false
@@ -109,7 +110,13 @@ local function defer_init()
       pattern = '*',
       desc = 'Initialize sos.nvim',
       once = true,
-      callback = function() M.setup() end,
+      callback = function()
+        if cfg.opts.enabled then
+          M.enable(false)
+        else
+          M.disable(false)
+        end
+      end,
     })
 
     return true
@@ -120,56 +127,39 @@ end
 
 ---@param verbose? boolean
 function mt.enable(verbose)
-  cfg.enabled = true
   assert(not was_reloaded())
+  if not did_setup then return M.setup { enabled = true } end
+  cfg.opts.enabled = true
   if defer_init() then return end
-  manage_vim_opts(cfg, true)
-  autocmds.refresh(cfg)
-  M.buf_observer:start(cfg)
+  manage_vim_opts(true)
+  autocmds.refresh(cfg.opts)
+  M.buf_observer:start {
+    should_observe_buf = require('sos.impl').should_observe_buf,
+    timeout = cfg.opts.timeout,
+    on_timer = cfg.opts.on_timer,
+  }
   if verbose then util.notify 'enabled' end
 end
 
 ---@param verbose? boolean
 function mt.disable(verbose)
-  cfg.enabled = false
   assert(not was_reloaded())
+  if not did_setup then return M.setup { enabled = false } end
+  cfg.opts.enabled = false
   if defer_init() then return end
-  manage_vim_opts(cfg, false)
+  manage_vim_opts(false)
   autocmds.clear()
   M.buf_observer:stop()
   if verbose then util.notify 'disabled' end
 end
 
----Missing keys in `opts` are left untouched and will continue to use their
----current value, or will fallback to their default value if never previously
----set.
----@param opts? sos.Config
----@param reset? boolean Reset all options to their defaults before applying `opts`
----@return nil
-function mt.setup(opts, reset)
-  vim.validate { opts = { opts, 'table', true } }
-
-  if reset then
-    for _, k in ipairs(vim.tbl_keys(cfg)) do
-      if rawget(cfg, k) ~= nil then rawset(cfg, k, nil) end
-    end
-  end
-
-  if opts then
-    for k, v in pairs(opts) do
-      if cfg[k] == nil then
-        vim.notify(
-          string.format('[sos.nvim]: unrecognized key in options: %s', k),
-          vim.log.levels.WARN
-        )
-      else
-        cfg[k] = vim.deepcopy(v)
-      end
-    end
-  end
+---@param config? sos.config.opts
+function mt.setup(config)
+  cfg.apply(config)
+  did_setup = true
 
   if not defer_init() then
-    if cfg.enabled then
+    if cfg.opts.enabled then
       M.enable(false)
     else
       M.disable(false)
@@ -259,7 +249,7 @@ do
 
   if old then
     -- Plugin was reloaded somehow
-    rawset(cfg, 'enabled', nil)
+    rawset(cfg.opts, 'enabled', nil)
 
     -- TODO: Forcefully detach buf callbacks? Emit a warning?
     old.stop()

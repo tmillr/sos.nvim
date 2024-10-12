@@ -10,10 +10,18 @@
     "workspace": {
         "checkThirdParty": false,
         "library": ["$VIMRUNTIME", "$PLENARY"],
-        "ignoreDir": ["/.meta", "/.log", ".vscode"]
+        "ignoreDir": ["/.meta", "/.log", ".vscode"],
+        "runtime.special": {
+            "assertf": "assert"
+        }
     },
 
     "diagnostics": {
         "unusedLocalExclude": ["_*", "api"]
+    },
+
+    "type": {
+        "weakNilCheck": false,
+        "weakUnionCheck": false
     }
 }

@@ -80,31 +80,39 @@ function M.resolve_bufspec(info)
   return buf
 end
 
+local function verbose(opts)
+  if opts.smods.emsg_silent or opts.smods.silent then
+    return opts.smods.unsilent
+  end
+
+  return true
+end
+
 return setmetatable(
   Commands {
     SosEnable = {
       desc = 'Enable sos autosaver',
       nargs = 0,
       force = true,
-      function() require('sos').enable(true) end,
+      function(opts) require('sos').enable(verbose(opts)) end,
     },
 
     SosDisable = {
       desc = 'Disable sos autosaver',
       nargs = 0,
       force = true,
-      function() require('sos').disable(true) end,
+      function(opts) require('sos').disable(verbose(opts)) end,
     },
 
     SosToggle = {
       desc = 'Toggle sos autosaver',
       nargs = 0,
       force = true,
-      function()
-        if require('sos.config').enabled then
-          require('sos').disable(true)
+      function(opts)
+        if require('sos.config').opts.enabled then
+          require('sos').disable(verbose(opts))
         else
-          require('sos').enable(true)
+          require('sos').enable(verbose(opts))
         end
       end,
     },
@@ -116,9 +124,9 @@ return setmetatable(
       addr = 'buffers',
       complete = 'buffer',
       force = true,
-      function(info)
-        local buf = M.resolve_bufspec(info)
-        if buf then require('sos').toggle_buf(buf, true) end
+      function(opts)
+        local buf = M.resolve_bufspec(opts)
+        if buf then require('sos').toggle_buf(buf, verbose(opts)) end
       end,
     },
   },

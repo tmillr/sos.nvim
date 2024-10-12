@@ -94,7 +94,7 @@ jobs:
             ${{ env.HOME }}/plenary
           key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Add nvim to PATH
         run: echo ~/nvim/usr/bin >> "${GITHUB_PATH:?}"
