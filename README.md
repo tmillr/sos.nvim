@@ -33,6 +33,12 @@ Simply use your preferred method of installing Vim/Neovim plugins.
 luarocks install --dev sos.nvim
 ```
 
+### LuaRocks (latest release)
+
+```sh
+luarocks install sos.nvim
+```
+
 ### Example using `Plug`
 
 To install this plugin via Plug, add the following line to your vimrc/init file, plug file, or any other file that gets sourced during Neovim's initialization:
