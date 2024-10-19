@@ -50,7 +50,7 @@ jobs:
 
       - name: Restore cache
         id: restore-cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ env.HOME }}/nvim
@@ -87,7 +87,7 @@ jobs:
 
       - if: ${{ !steps.restore-cache.outputs.cache-hit }}
         name: Cache deps
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: |
             ${{ env.HOME }}/nvim
