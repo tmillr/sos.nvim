@@ -28,7 +28,7 @@ function M.refresh(cfg)
     pattern = '*',
     once = true,
     nested = false,
-    command = [[silent call v:lua.require'sos.commands'.SosDisable()]],
+    callback = function() require('sos').disable(false) end,
   })
 
   if cfg.save_on_bufleave then
